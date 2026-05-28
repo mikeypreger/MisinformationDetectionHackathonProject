@@ -2,7 +2,7 @@ streamlit
 requests
 python-dotenv
 spacy
-openai
+google-genai
 open_clip_torch
 torch
 torchvision

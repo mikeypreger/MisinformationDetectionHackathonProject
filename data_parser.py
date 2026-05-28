@@ -14,14 +14,25 @@ def parse_instagram(post):
 def parse_facebook(post):
     """Extracts images from Facebook scraped data."""
     images = []
-    # Facebook Bright Data scrapers usually use these keys
-    if "image_url" in post and post["image_url"]:
-        images.append(post["image_url"])
-    elif "images" in post and isinstance(post["images"], list):
-        images.extend(post["images"])
-    elif "attachment" in post and isinstance(post["attachment"], dict):
-        if "image" in post["attachment"]:
-            images.append(post["attachment"]["image"])
+    # 1. Direct post image field (Bright Data Facebook schema)
+    if "post_image" in post and post["post_image"]:
+        images.append(post["post_image"])
+    # 2. Attachments array — grab photo-type attachment URLs
+    if not images and "attachments" in post and isinstance(post["attachments"], list):
+        for attachment in post["attachments"]:
+            if isinstance(attachment, dict) and attachment.get("type") == "photo":
+                url = attachment.get("url")
+                if url:
+                    images.append(url)
+    # 3. Legacy / alternative field names
+    if not images:
+        if "image_url" in post and post["image_url"]:
+            images.append(post["image_url"])
+        elif "images" in post and isinstance(post["images"], list):
+            images.extend(post["images"])
+        elif "attachment" in post and isinstance(post["attachment"], dict):
+            if "image" in post["attachment"]:
+                images.append(post["attachment"]["image"])
     return images
 
 def parse_x(post):
