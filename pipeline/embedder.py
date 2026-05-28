@@ -22,9 +22,12 @@ def load_clip_model():
 
     _device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"[embedder] loading CLIP ViT-B-32 on {_device}...")
-    _model, _, _preprocess = open_clip.create_model_and_transforms(
-        "ViT-B-32", pretrained="openai"
-    )
+    import warnings
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="QuickGELU mismatch")
+        _model, _, _preprocess = open_clip.create_model_and_transforms(
+            "ViT-B-32", pretrained="openai"
+        )
     _model = _model.to(_device).eval()
     print("[embedder] CLIP model ready")
     return _model, _preprocess, _device
@@ -70,6 +73,25 @@ def embed_single_image(pil_image: Image.Image) -> np.ndarray:
     if result.shape[0] == 0:
         raise ValueError("Failed to embed the query image")
     return result[0]
+
+
+def embed_text(text: str) -> np.ndarray:
+    """
+    Encode a text string with CLIP's text encoder.
+    Returns L2-normalized numpy array of shape (512,).
+
+    Cosine similarity between this and an image embedding (dot product of two
+    unit vectors) measures how well the image matches the text — the core of
+    CLIP's cross-modal alignment.
+    """
+    import open_clip
+    model, _, device = load_clip_model()
+    tokenizer = open_clip.get_tokenizer("ViT-B-32")
+    tokens = tokenizer([text]).to(device)
+    with torch.no_grad():
+        feat = model.encode_text(tokens)
+        feat = feat / feat.norm(dim=-1, keepdim=True)
+    return feat[0].cpu().numpy().astype(np.float32)
 
 
 def load_image_from_url(url: str) -> Image.Image:

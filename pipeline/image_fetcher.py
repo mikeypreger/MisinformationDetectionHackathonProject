@@ -45,7 +45,7 @@ def _trigger(url: str) -> str | None:
         return None
 
 
-def _poll(snapshot_id: str, timeout: int = 120, interval: int = 5) -> list | None:
+def _poll(snapshot_id: str, timeout: int = 45, interval: int = 5) -> list | None:
     """Poll until snapshot is ready. Returns list of records or None."""
     poll_url = f"{_BASE}/snapshot/{snapshot_id}?format=json"
     deadline = time.time() + timeout
@@ -200,7 +200,7 @@ def fetch_context_image_urls(queries: list[str], max_total: int = 500) -> list[s
             continue
 
         remaining = max_total - len(all_image_urls)
-        pages = min(10, max(1, remaining // 8))  # ~8 usable links per page
+        pages = min(2, max(1, remaining // 8))  # hard cap: 2 SERP pages per query
         print(f"[image_fetcher] querying {pages} SERP pages for: {query!r}")
 
         links = _serp_links_for_query(query, pages=pages)
