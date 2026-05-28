@@ -155,6 +155,13 @@ def test_6_gmm_multi_cluster():
 
     # --- GMM pipeline: correctly catches the between-cluster anomaly ---
     result_gmm_anomaly = engine.execute_gmm_pipeline(query_anomaly, bimodal_corpus)
+
+    # 🚨 PASTE THIS BLOCK RIGHT HERE 🚨
+    import json
+    print("\n--- FINAL THREAT INTELLIGENCE REPORT ---")
+    print(json.dumps(result_gmm_anomaly, indent=4))
+    print("----------------------------------------\n")
+    # 🚨 END PASTE 🚨
     assert result_gmm_anomaly["status"] == "success", \
         f"GMM pipeline failed: {result_gmm_anomaly.get('message')}"
     assert result_gmm_anomaly["is_anomaly"] == True, (
