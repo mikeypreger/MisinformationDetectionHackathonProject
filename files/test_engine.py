@@ -172,11 +172,11 @@ def test_6_gmm_multi_cluster():
         f"p_value={result_gmm_valid['p_value']:.4f}"
     )
 
-    print(f"  GMM components selected (BIC): {result_gmm_anomaly['gmm_components_used']}")
+    print(f"  GMM components selected (BIC): {result_gmm_anomaly['diagnostics']['gmm_components_used']}")
     print(f"  GMM on between-cluster anomaly: is_anomaly={result_gmm_anomaly['is_anomaly']}, "
-          f"p_value={result_gmm_anomaly['p_value']:.4f}  <-- correctly caught")
+          f"p_value={result_gmm_anomaly['metrics']['p_value']:.4f}  <-- correctly caught")
     print(f"  GMM on valid front-cluster:     is_anomaly={result_gmm_valid['is_anomaly']}, "
-          f"p_value={result_gmm_valid['p_value']:.4f}  <-- correctly passed")
+          f"p_value={result_gmm_valid['metrics']['p_value']:.4f}  <-- correctly passed")
     print("PASSED: GMM handles multi-modal corpus; single-Gaussian cannot.\n")
 
 

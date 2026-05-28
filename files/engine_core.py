@@ -305,9 +305,14 @@ class EngineCore:
         return {
             "status": "success",
             "is_anomaly": is_anomaly,
-            "p_value": float(p_value),
-            "gmm_query_log_likelihood": float(query_score),
-            "gmm_components_used": n_components_used,
-            "pca_dimensions_used": int(target_dims),
-            "images_used": int(n_samples)
+            "metrics": {
+                "p_value": float(p_value),
+                "gmm_query_log_likelihood": float(query_score)
+            },
+            "diagnostics": {
+                "gmm_components_used": n_components_used,
+                "pca_dimensions_used": int(target_dims),
+                "images_used": int(n_samples),
+                "images_filtered": int(raw_corpus_matrix.shape[0] - n_samples)
+            }
         }
