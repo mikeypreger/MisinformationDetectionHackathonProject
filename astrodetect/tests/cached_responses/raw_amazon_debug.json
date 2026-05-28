@@ -1,0 +1,108 @@
+{
+  "search_metadata": {
+    "id": "6a184daa8ffd7bfdf81cde1d",
+    "status": "Success",
+    "json_endpoint": "https://serpapi.com/searches/KOM925bpgUAOxwbfQU1WSQ/6a184daa8ffd7bfdf81cde1d.json",
+    "created_at": "2026-05-28 14:14:02 UTC",
+    "processed_at": "2026-05-28 14:14:02 UTC",
+    "google_lens_url": "https://lens.google.com/uploadbyurl?url=https%3A%2F%2Fm.media-amazon.com%2Fimages%2FM%2FMV5BMTc0MjkzOTAxNV5BMl5BanBnXkFtZTcwNTk1NjcyNw%40%40._V1_FMjpg_UX1000_.jpg",
+    "raw_html_file": "https://serpapi.com/searches/KOM925bpgUAOxwbfQU1WSQ/6a184daa8ffd7bfdf81cde1d.html",
+    "total_time_taken": 1.26
+  },
+  "search_parameters": {
+    "engine": "google_lens",
+    "url": "https://m.media-amazon.com/images/M/MV5BMTc0MjkzOTAxNV5BMl5BanBnXkFtZTcwNTk1NjcyNw@@._V1_FMjpg_UX1000_.jpg"
+  },
+  "ai_overview": {
+    "page_token": "s_LkzXicxVbbkqo4FP2B-YV5HJ9aBS_d0lXWqc1FBUGNN8QXipsRuXULNq1v8y_zVfM1E0FttenTNadqaqJFkpWdnZ1kLTZ__uW7off3b7-vk-Qlfq5W0zSt4CjCvlOxoqBqxPvQqq4iP95a6x9-GOtBZDvtXVg6tuPddmVYTrv2WIqj3Za0CFpJHbOy88LSzg6OI2-xGyZtDtArhyOOA2sCGPdEEB7FNFJ5BAB8a06eMHqnAETQJYJhvpXCmAOOdXfsZJbhxNXWtdvcyBjWDee1thuVB2PguiC4Es-6Sk2rKSqi5Smmh-osGXS1g-LS7mCqNOUpHJRA2hCcGnTF-nIjPYlYopd7LKFQ6cvBe7Cc0J6t0okzjShNHbiDg5Uqe-qgTP2NPEW1pSom2hRoZUI1BqpI_KDakEe0pioThCJdrkk7a88Qn4xr1qVQrs_DExYv1eZBVpd7s9akSNuT1U5qTJjUChiPrO2boZIsQ-nNDMe-GaBEW7Av8gEfhqOdR2_deV1CfGn_1q6XrLhNlRy3_epRmpHouP_YX6amN6r1V7iBhFJ2Y23dNGJnQy70fRNX9Sp5eH_UedKpxBUnrLzTSyk2QVnXvUqNopnKsGoExAD-0yKyQlZ7IABXZKCgYvxSWMDkKQAidDgX4dxAH3ZdYnlEEHt0SP640J3G5g44jsxtdPUDb3_yele43PMl4jxgTpwdYRKUyImF81ARmG9WPNVskclXoR_9zfImj-_wQh_dS-e4HglylB7hU7RKtroAwlUQGAvA5r49GOEWAkt0i6PJSwfBcAAtrHxxBufCisJU65yC17oYUNXGhH1U1dySiq661trKGtv4SEpuylBR1568xktNE947XZsrz_DTMrXkJjNBM6haJrHzI8N2bH2tUz-yPl2jmxRTf2o9ZGqw4osc4ms5yFJZBGagCwtUkSssfaWFjATo9kgF8gorIOmZaNcXwH3cKcr7AjlyTA4bLnDOM0O4lUQkQTnj2um4W8frYD8xBOc-CrTwMQxw1kJuh_M1Edzv4uz8Ag8_bfF2HbINxEYXTLs9J_HaFZEFsFlPzHnYvbElI2tOPM6PgDtTsHdtgT52li2DiTXGN0jW5L0Pp0IWBLmY0TEWj8OQ_7LwT68iogXx_tgUuKFvCjIIRy38Uom-N0Fn2t-x-Jr9vc2sVd911_CUzBWnTHFByPfHwIS7dVrM9igw_8Xb3_q_9ZDnBnTKDUV6QN_ogc0I8bPckE_-yA3iMUSMcKEePueG1Z3XT3rgYHytB-snueFGD-h7PbDFesDwlR5mBXpAhXrIc8OVHsin2V1ukOAqN1z08Eu5If6F3JCJw8mr20Sx2-AvE0ZHCPuMpYl-a77FvTFzGKysljed6pr5fcJYBclzYNj-g-7az2xNSvb2g06A6NmxS6-lwN9GbcpolGfz7TvY04Ga8OhlYgK_4v15vzejXUXr9kVGTFeSwajzvVADZzmbLDR3SNEUWrxtdR9Lw0CeOONg0hoN5qtehxn2-2--b8HesRmhpzWxbjyqZXoQL-mdXT5w5mxp1Y1db7Nip6uIfBPOxMfFGHU2L1hOsqjiNpMseH8zPCzKqBRsLfLlDQ0MAwQqBkJJDRC5ecRFhCal2DJ0J35rN-mm02w07BXdtJ9a9adSgJP9S_uxVorDbZv-B_9pfUg",
+    "serpapi_link": "https://serpapi.com/search.json?engine=google_ai_overview&page_token=s_LkzXicxVbbkqo4FP2B-YV5HJ9aBS_d0lXWqc1FBUGNN8QXipsRuXULNq1v8y_zVfM1E0FttenTNadqaqJFkpWdnZ1kLTZ__uW7off3b7-vk-Qlfq5W0zSt4CjCvlOxoqBqxPvQqq4iP95a6x9-GOtBZDvtXVg6tuPddmVYTrv2WIqj3Za0CFpJHbOy88LSzg6OI2-xGyZtDtArhyOOA2sCGPdEEB7FNFJ5BAB8a06eMHqnAETQJYJhvpXCmAOOdXfsZJbhxNXWtdvcyBjWDee1thuVB2PguiC4Es-6Sk2rKSqi5Smmh-osGXS1g-LS7mCqNOUpHJRA2hCcGnTF-nIjPYlYopd7LKFQ6cvBe7Cc0J6t0okzjShNHbiDg5Uqe-qgTP2NPEW1pSom2hRoZUI1BqpI_KDakEe0pioThCJdrkk7a88Qn4xr1qVQrs_DExYv1eZBVpd7s9akSNuT1U5qTJjUChiPrO2boZIsQ-nNDMe-GaBEW7Av8gEfhqOdR2_deV1CfGn_1q6XrLhNlRy3_epRmpHouP_YX6amN6r1V7iBhFJ2Y23dNGJnQy70fRNX9Sp5eH_UedKpxBUnrLzTSyk2QVnXvUqNopnKsGoExAD-0yKyQlZ7IABXZKCgYvxSWMDkKQAidDgX4dxAH3ZdYnlEEHt0SP640J3G5g44jsxtdPUDb3_yele43PMl4jxgTpwdYRKUyImF81ARmG9WPNVskclXoR_9zfImj-_wQh_dS-e4HglylB7hU7RKtroAwlUQGAvA5r49GOEWAkt0i6PJSwfBcAAtrHxxBufCisJU65yC17oYUNXGhH1U1dySiq661trKGtv4SEpuylBR1568xktNE947XZsrz_DTMrXkJjNBM6haJrHzI8N2bH2tUz-yPl2jmxRTf2o9ZGqw4osc4ms5yFJZBGagCwtUkSssfaWFjATo9kgF8gorIOmZaNcXwH3cKcr7AjlyTA4bLnDOM0O4lUQkQTnj2um4W8frYD8xBOc-CrTwMQxw1kJuh_M1Edzv4uz8Ag8_bfF2HbINxEYXTLs9J_HaFZEFsFlPzHnYvbElI2tOPM6PgDtTsHdtgT52li2DiTXGN0jW5L0Pp0IWBLmY0TEWj8OQ_7LwT68iogXx_tgUuKFvCjIIRy38Uom-N0Fn2t-x-Jr9vc2sVd911_CUzBWnTHFByPfHwIS7dVrM9igw_8Xb3_q_9ZDnBnTKDUV6QN_ogc0I8bPckE_-yA3iMUSMcKEePueG1Z3XT3rgYHytB-snueFGD-h7PbDFesDwlR5mBXpAhXrIc8OVHsin2V1ukOAqN1z08Eu5If6F3JCJw8mr20Sx2-AvE0ZHCPuMpYl-a77FvTFzGKysljed6pr5fcJYBclzYNj-g-7az2xNSvb2g06A6NmxS6-lwN9GbcpolGfz7TvY04Ga8OhlYgK_4v15vzejXUXr9kVGTFeSwajzvVADZzmbLDR3SNEUWrxtdR9Lw0CeOONg0hoN5qtehxn2-2--b8HesRmhpzWxbjyqZXoQL-mdXT5w5mxp1Y1db7Nip6uIfBPOxMfFGHU2L1hOsqjiNpMseH8zPCzKqBRsLfLlDQ0MAwQqBkJJDRC5ecRFhCal2DJ0J35rN-mm02w07BXdtJ9a9adSgJP9S_uxVorDbZv-B_9pfUg"
+  },
+  "visual_matches": [
+    {
+      "position": 1,
+      "title": "Kim Kardashian: Movies, TV, and Bio",
+      "link": "https://www.primevideo.com/person/Kim-Kardashian/amzn1.dv.gti.04a6757a-0cb3-49e2-9b05-57dcfffffe5c/",
+      "source": "Prime Video",
+      "source_icon": "https://serpapi.com/searches/6a184daa8ffd7bfdf81cde1d/images/y6KK4qtXPt8YOgEHT8Cs7E7c_NLk3ShVfmmFBMx6jIg.png",
+      "thumbnail": "https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcSlFf9bnInNxesMrQ5d_2AlpubKZcdQsGYr0XxHdwW3SQJuzEU-",
+      "thumbnail_width": 276,
+      "thumbnail_height": 183,
+      "image": "https://m.media-amazon.com/images/S/pv-target-images/cd56fffe8b1c35afbe5f8493696e94b4c892819a488f23461d9f8b766ca961ed.jpg",
+      "image_width": 2023,
+      "image_height": 1344
+    },
+    {
+      "position": 2,
+      "title": "Kim Kardashian - Biography - IMDb",
+      "link": "https://www.imdb.com/name/nm2578007/bio/",
+      "source": "IMDb",
+      "source_icon": "https://serpapi.com/searches/6a184daa8ffd7bfdf81cde1d/images/pJP-jYkJrjijAPlCZnUW_P4VKsuYbrfh8urITPK-5U4.png",
+      "thumbnail": "https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcR3u_GNcVF3LH8G9oTiz3lYn-NKaLVrqZ51dz1CzV8pvDAcwZpv",
+      "thumbnail_width": 276,
+      "thumbnail_height": 183,
+      "image": "https://m.media-amazon.com/images/M/MV5BMTc0MjkzOTAxNV5BMl5BanBnXkFtZTcwNTk1NjcyNw@@._V1_FMjpg_UX1000_.jpg",
+      "image_width": 1505,
+      "image_height": 1000
+    },
+    {
+      "position": 3,
+      "title": "Kim Kardashian and North West Wear Matching Bikinis During a ...",
+      "link": "https://www.imdb.com/news/ni60163205/",
+      "source": "IMDb",
+      "source_icon": "https://serpapi.com/searches/6a184daa8ffd7bfdf81cde1d/images/hixJTMXF9qi6lAzErH9e56jOidp9-AOQVI5PbF_VODo.png",
+      "thumbnail": "https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcR-AUktJVwOrfdt4T6XfGNhZG-bNcIYdcLDu9g_5ZVGhJw2zGsZ",
+      "thumbnail_width": 207,
+      "thumbnail_height": 140,
+      "image": "https://m.media-amazon.com/images/M/MV5BMTc0MjkzOTAxNV5BMl5BanBnXkFtZTcwNTk1NjcyNw@@._V1_QL75_UX140_CR0,2,140,207_.jpg",
+      "image_width": 207,
+      "image_height": 140
+    },
+    {
+      "position": 4,
+      "title": "Kim Kardashian: Climbs tabloid ladder with celebrity crutches",
+      "link": "https://www.sheknows.com/entertainment/articles/1060075/kim-kardashian-coming-back-from-her-huge-fall-with-the-help-of-celebrity-crutches/",
+      "source": "SheKnows",
+      "source_icon": "https://serpapi.com/searches/6a184daa8ffd7bfdf81cde1d/images/TlFtZKVRGLNehkU8OPUNfFYceb6STF1XZN8IqlUSPek.png",
+      "thumbnail": "https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcSUNdYuGCuOp1nEvVednQuJ3P6ogSske9OIYLLsDRNTdSNNvxwy",
+      "thumbnail_width": 258,
+      "thumbnail_height": 195,
+      "image": "https://www.sheknows.com/wp-content/uploads/2018/08/wxacbvls8r0h39ykskfp.jpeg?w=1024",
+      "image_width": 1354,
+      "image_height": 1024
+    },
+    {
+      "position": 5,
+      "title": "May the New Year bring you peace in your heart, warmth in ...",
+      "link": "https://www.instagram.com/p/DS7zW4QjHrO/",
+      "source": "Instagram",
+      "source_icon": "https://serpapi.com/searches/6a184daa8ffd7bfdf81cde1d/images/Xk-dYtsnSUe43g1geUcm1jOYcRSWaCpgrTQm9YLDqsE.png",
+      "thumbnail": "https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcRP0YqpIHpVLRmK7z6lTniHXoNQ9fpxyrqf2InN6HUQxjsrAYEn",
+      "thumbnail_width": 259,
+      "thumbnail_height": 194,
+      "image": "https://lookaside.instagram.com/seo/google_widget/crawler/?media_id=3905211284513643358",
+      "image_width": 1778,
+      "image_height": 1333
+    },
+    {
+      "position": 6,
+      "title": "Show me your wedding hair styles!",
+      "link": "https://boards.weddingbee.com/topic/show-me-your-wedding-hair-styles/",
+      "source": "Weddingbee-Boards",
+      "source_icon": "https://serpapi.com/searches/6a184daa8ffd7bfdf81cde1d/images/UFyjypMMm3uQpF9c7nBK_u-YatKk3JK9cqJIDdFIh00.png",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQioHKfvj94f2beQEc9vtJPzeT0py036Jv7-zYlR6_3KfbvLCyK",
+      "thumbnail_width": 257,
+      "thumbnail_height": 196,
+      "image": "https://www-static.weddingbee.com/pics/231640/H2.jpg",
+      "image_width": 525,
+      "image_height": 400
+    }
+  ],
+  "related_content": [
+    {
+      "query": "Kim Kardashian",
+      "link": "https://www.google.com/search?newwindow=1&sca_esv=515e544df15d7837&lns_surface=26&q=Kim+Kardashian&kgmid=/m/0261x8t&sa=X&ved=2ahUKEwjf3ei4ldyUAxWiTDABHdgTOBwQ9_gLKAB6BAg1EAE",
+      "thumbnail": "https://serpapi.com/searches/6a184daa8ffd7bfdf81cde1d/images/yhLGWCaT_VehcZZkcVTXXlfotO3D9l4EPRMNphZgK0w.jpeg",
+      "serpapi_link": "https://serpapi.com/search.json?device=desktop&engine=google&google_domain=google.com&kgmid=%2Fm%2F0261x8t&q=Kim+Kardashian"
+    }
+  ]
+}
