@@ -1,12 +1,33 @@
+"""
+social_scraper.py  —  integrated
+
+Replaces the monolithic _extract_fields() fallback chain with data_parser's
+platform-specific parsers. Each parser was written to match Bright Data's
+exact per-platform JSON schema, so extraction is more reliable than the
+generic field-scan approach.
+
+The public API is unchanged: scrape_post() returns
+    {"image_url": str|None, "caption": str, "raw_data": dict|list}
+"""
+
 import os
 import time
 import requests
 from dotenv import load_dotenv
 
+# Import the platform-specific image-URL parsers from your friend's module
+from data_parser import (
+    parse_instagram,
+    parse_facebook,
+    parse_x,
+    parse_reddit,
+    parse_tiktok,
+)
+
 load_dotenv()
 
 _TOKEN = os.getenv("BRIGHT_DATA_TOKEN")
-_BASE = "https://api.brightdata.com/datasets/v3"
+_BASE  = "https://api.brightdata.com/datasets/v3"
 
 SCRAPER_MAP = {
     "instagram": os.getenv("ID_INSTAGRAM"),
@@ -15,6 +36,18 @@ SCRAPER_MAP = {
     "facebook":  os.getenv("ID_FACEBOOK"),
     "reddit":    os.getenv("ID_REDDIT"),
 }
+
+# Map platform keys to their dedicated data_parser function
+_PARSER_MAP = {
+    "instagram": parse_instagram,
+    "twitter":   parse_x,
+    "tiktok":    parse_tiktok,
+    "facebook":  parse_facebook,
+    "reddit":    parse_reddit,
+}
+
+_IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif")
+_PROFILE_IMAGE_TOKENS = ("/profile_images/", "_normal.", "_400x400.")
 
 
 def _headers() -> dict:
@@ -30,8 +63,7 @@ def _trigger_scrape(dataset_id: str, url: str) -> str | None:
     try:
         resp = requests.post(endpoint, headers=_headers(), json=[{"url": url}], timeout=30)
         resp.raise_for_status()
-        data = resp.json()
-        return data.get("snapshot_id")
+        return resp.json().get("snapshot_id")
     except Exception as e:
         print(f"[social_scraper] trigger failed: {e}")
         return None
@@ -57,98 +89,62 @@ def _poll_snapshot(snapshot_id: str, timeout: int = 120, interval: int = 5) -> l
     print(f"[social_scraper] poll timed out after {timeout}s")
     return None
 
-_IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif")
 
-
-def _extract_fields(record: dict) -> tuple[str | None, str]:
-    """
-    Extract (image_url, caption) from a Bright Data record.
-    Covers flat fields, platform-specific nested schemas, and a generic URL scan fallback.
-    Logs record keys when extraction fails so new schemas can be diagnosed.
-    """
-    caption = ""
+def _extract_caption(record: dict) -> str:
+    """Pull the best caption/text field from a Bright Data record."""
     for field in ("caption", "text", "content", "title", "description"):
         val = record.get(field)
         if val and isinstance(val, str):
-            caption = val
-            break
+            return val
+    return ""
 
+
+def _extract_fields(record: dict, platform_key: str) -> tuple[str | None, str]:
+    """
+    Use the platform-specific data_parser for image URL extraction,
+    with a generic URL-scan fallback for unknown platforms.
+
+    Returns (image_url, caption).
+    """
+    caption   = _extract_caption(record)
     image_url = None
 
-    # 1. Broad flat field lookup (covers Facebook, most platforms)
-    for field in ("post_image", "display_url", "image_url", "media_url", "thumbnail_url",
-                  "thumbnail", "image", "photo_url", "cover_image"):
-        val = record.get(field)
-        if val and isinstance(val, str) and val.startswith("http"):
-            image_url = val
-            break
+    parser = _PARSER_MAP.get(platform_key)
+    if parser:
+        # Only accept direct image URLs from the parser (not t.co shortened links)
+        for url in parser(record):
+            if isinstance(url, str) and any(
+                url.lower().split("?")[0].endswith(ext) for ext in _IMAGE_EXTENSIONS
+            ):
+                image_url = url
+                break
 
-    # 2. Nested gallery arrays (Instagram, Facebook galleries)
-    if image_url is None:
-        for gallery_field in ("photos", "post_content", "attachments",
-                              "media_gallery", "images", "media"):
-            gallery = record.get(gallery_field)
-            if isinstance(gallery, list) and gallery:
-                first = gallery[0]
-                if isinstance(first, dict):
-                    for f in ("url", "display_url", "image_url", "src", "thumbnail"):
-                        v = first.get(f)
-                        if v and isinstance(v, str) and v.startswith("http"):
-                            image_url = v
-                            break
-                elif isinstance(first, str) and first.startswith("http"):
-                    image_url = first
-                if image_url:
-                    break
-
-    # 3. Twitter/X — media entities
-    if image_url is None:
-        media_list = (record
-                      .get("entities", {})
-                      .get("media", []))
-        if media_list and isinstance(media_list, list):
-            m = media_list[0]
-            if isinstance(m, dict):
-                image_url = (m.get("media_url_https")
-                             or m.get("media_url"))
-
-    # 4. TikTok — video cover
-    if image_url is None:
-        video = record.get("video") or {}
-        if isinstance(video, dict):
-            image_url = (video.get("origin_cover")
-                         or video.get("cover")
-                         or video.get("dynamic_cover"))
-
-    # 5. Reddit — preview images
-    if image_url is None:
-        preview_imgs = (record
-                        .get("preview", {})
-                        .get("images", []))
-        if preview_imgs and isinstance(preview_imgs, list):
-            src = preview_imgs[0].get("source", {})
-            if isinstance(src, dict):
-                image_url = src.get("url")
-                # Reddit HTML-encodes ampersands in preview URLs
-                if image_url:
-                    image_url = image_url.replace("&amp;", "&")
-
-    # 6. Generic fallback — scan all string values for image-extension URLs
+    # Generic fallback: scan string values AND one level into list values.
+    # Bright Data Twitter returns images in "photos": [...] (a list), not a flat string.
+    # Skips profile/avatar URLs which appear on every record.
     if image_url is None:
         for v in record.values():
-            if (isinstance(v, str)
-                    and v.startswith("http")
-                    and any(v.lower().split("?")[0].endswith(ext)
-                            for ext in _IMAGE_EXTENSIONS)):
-                image_url = v
+            candidates = [v] if isinstance(v, str) else (v if isinstance(v, list) else [])
+            for candidate in candidates:
+                if (
+                    isinstance(candidate, str)
+                    and candidate.startswith("http")
+                    and any(candidate.lower().split("?")[0].endswith(ext) for ext in _IMAGE_EXTENSIONS)
+                    and not any(tok in candidate for tok in _PROFILE_IMAGE_TOKENS)
+                ):
+                    image_url = candidate
+                    break
+            if image_url:
                 break
 
     if image_url is None:
-        print(f"[social_scraper] could not extract image. "
-              f"Record keys: {list(record.keys())} | "
-              f"Sample: {str(record)[:300]}")
+        print(
+            f"[social_scraper] could not extract image. "
+            f"Record keys: {list(record.keys())} | Sample: {str(record)[:300]}"
+        )
 
     return image_url, caption
+
 
 def scrape_post(normalized_url: str, platform_key: str) -> dict:
     """
@@ -170,10 +166,9 @@ def scrape_post(normalized_url: str, platform_key: str) -> dict:
     if not records:
         return empty
 
-    # Records is a list; take first valid one
     record = records[0] if isinstance(records, list) else records
     if not isinstance(record, dict):
         return empty
 
-    image_url, caption = _extract_fields(record)
+    image_url, caption = _extract_fields(record, platform_key)
     return {"image_url": image_url, "caption": caption, "raw_data": record}

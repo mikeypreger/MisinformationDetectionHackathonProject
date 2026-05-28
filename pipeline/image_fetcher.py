@@ -45,7 +45,7 @@ def _trigger(url: str) -> str | None:
         return None
 
 
-def _poll(snapshot_id: str, timeout: int = 45, interval: int = 5) -> list | None:
+def _poll(snapshot_id: str, timeout: int = 120, interval: int = 5) -> list | None:
     """Poll until snapshot is ready. Returns list of records or None."""
     poll_url = f"{_BASE}/snapshot/{snapshot_id}?format=json"
     deadline = time.time() + timeout
@@ -96,8 +96,8 @@ def _links_from_serp(records: list) -> list[str]:
     return list(dict.fromkeys(links))  # deduplicate
 
 
-def _serp_links_for_query(query: str, pages: int = 5) -> list[str]:
-    """Fetch `pages` SERP result pages for a query and return article link URLs."""
+def _fetch_one_query(query: str, pages: int = 2) -> list[str]:
+    """Fetch SERP article links for a single query. Suitable for parallel execution."""
     all_links: list[str] = []
     for page in range(pages):
         start = page * 10
@@ -185,34 +185,28 @@ def _og_images_parallel(links: list[str], max_workers: int = 20) -> list[str]:
 
 def fetch_context_image_urls(queries: list[str], max_total: int = 500) -> list[str]:
     """
-    For each query:
-      1. Fetch SERP results from Bright Data (multiple pages)
-      2. Collect article page URLs from organic results
-      3. Fetch each page's og:image in parallel
-    Returns deduplicated image URLs capped at max_total.
+    Fire all queries to Bright Data in parallel, poll results concurrently,
+    then extract og:images in parallel.
+    Bright Data takes ~70-80s per snapshot; running queries sequentially would
+    mean 3-4 minutes of blocked waiting — parallel cuts this to ~80s total.
     """
-    all_image_urls: set[str] = set()
+    active = [q for q in queries[:3] if q and q.strip()]
+    if not active:
+        return []
 
-    for query in queries[:3]:
-        if len(all_image_urls) >= max_total:
-            break
-        if not query or not query.strip():
-            continue
+    pages = min(2, max(1, max_total // (len(active) * 8)))
+    print(f"[image_fetcher] fetching {len(active)} queries × {pages} pages in parallel")
 
-        remaining = max_total - len(all_image_urls)
-        pages = min(2, max(1, remaining // 8))  # hard cap: 2 SERP pages per query
-        print(f"[image_fetcher] querying {pages} SERP pages for: {query!r}")
+    with ThreadPoolExecutor(max_workers=len(active)) as ex:
+        link_lists = list(ex.map(lambda q: _fetch_one_query(q, pages=pages), active))
 
-        links = _serp_links_for_query(query, pages=pages)
-        if not links:
-            print(f"[image_fetcher] no links found for {query!r}")
-            continue
+    all_links = list(dict.fromkeys(lnk for lst in link_lists for lnk in lst))
+    if not all_links:
+        print("[image_fetcher] no article links found across all queries")
+        return []
 
-        image_urls = _og_images_parallel(links)
-        all_image_urls.update(image_urls)
-        print(f"[image_fetcher] pool size after {query!r}: {len(all_image_urls)}")
-
-    result = list(all_image_urls)[:max_total]
+    image_urls = _og_images_parallel(all_links)
+    result = list(dict.fromkeys(image_urls))[:max_total]
     print(f"[image_fetcher] final pool: {len(result)} unique image URLs")
     return result
 
