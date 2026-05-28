@@ -1,5 +1,495 @@
 {
-  "earliest_appearance": null,
-  "all_appearances": [],
-  "search_confidence": "no_results"
+  "earliest_appearance": {
+    "url": "https://www.rferl.org/a/New_Mosque_Project_Highlights_Moscows_Ethnic_Tensions/2168636.html",
+    "date": "2010-09-26",
+    "title": "New Mosque Project Highlights Moscow's Ethnic Tensions",
+    "context": "Moscow has just four mosques to meet the spiritual needs of the city's 2 million Muslims. But nevertheless, a plan to build a new mosque in the Russian capital is sparking fierce resistance.",
+    "source_name": "Radio Free Europe",
+    "match_type": "visual_matches"
+  },
+  "all_appearances": [
+    {
+      "url": "https://www.youtube.com/watch?v=sSJWFsyzx28",
+      "title": "For Yemeni-Americans, Trump's travel bans cause worry and ...",
+      "source_name": "YouTube",
+      "match_type": "visual_matches",
+      "date": "2025-06-07",
+      "context": null
+    },
+    {
+      "url": "https://www.bbc.com/news/world-41120255",
+      "title": "Muslims around the world celebrate Eid al-Adha festival",
+      "source_name": "BBC",
+      "match_type": "visual_matches",
+      "date": "2017-09-01",
+      "context": null
+    },
+    {
+      "url": "https://foreignpolicy.com/2015/11/09/islam-is-a-religion-of-peace-manal-omar-debate-islamic-state/",
+      "title": "Islam Is a Religion of Peace \u2013 Foreign Policy",
+      "source_name": "Foreign Policy",
+      "match_type": "visual_matches",
+      "date": "2015-11-09",
+      "context": null
+    },
+    {
+      "url": "https://www.france24.com/en/20180615-eid-fitr-celebrations-muslims-holy-month-ramadan-afghanistan-iran-gaza",
+      "title": "Eid celebrations mark end of Muslim holy month - France 24",
+      "source_name": "France 24",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=VyHKL3oRp4o",
+      "title": "Eid al-Fitr in Goma: A call for unity and peace - YouTube",
+      "source_name": "YouTube",
+      "match_type": "visual_matches",
+      "date": "2025-03-30",
+      "context": null
+    },
+    {
+      "url": "https://www.instagram.com/p/DWJOLZmjdpd/",
+      "title": "Thousands gathered for Id-ul-Fitr prayers in Iran on ...",
+      "source_name": "Instagram",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.facebook.com/poaenglish/videos/what-is-ethiopias-unique-position-within-islamethiopia-holds-a-unique-place-in-i/1287637063215576/",
+      "title": "What is #Ethiopia's unique position within Islam? #Ethiopia ...",
+      "source_name": "Facebook",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.aa.com.tr/en/asia-pacific/muslim-groups-oppose-prayer-ban-in-open-space-in-indian-state/2446984",
+      "title": "Muslim groups oppose prayer ban in open space in Indian state",
+      "source_name": "Anadolu Ajans\u0131",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.dw.com/en/ethiopian-police-fire-tear-gas-at-protesters-during-eid-celebrations/a-61664016",
+      "title": "Ethiopian police fire tear gas during Eid celebrations",
+      "source_name": "DW News",
+      "match_type": "visual_matches",
+      "date": "2022-05-02",
+      "context": null
+    },
+    {
+      "url": "https://hijrah.org/jumuah-prayer/",
+      "title": "Jumu'ah Prayer - Dar Al- Hijrah Islamic Center",
+      "source_name": "Dar Al- Hijrah Islamic Center",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.freep.com/picture-gallery/news/local/michigan/detroit/2024/04/10/muslims-mark-end-of-ramadan-in-detroit/73278559007/",
+      "title": "Muslims mark end of Ramadan in Detroit",
+      "source_name": "Detroit Free Press",
+      "match_type": "visual_matches",
+      "date": "2024-04-10",
+      "context": null
+    },
+    {
+      "url": "https://www.instagram.com/reel/DWHD4-gDCr-/",
+      "title": "For the first time since 1967 Al-Aqsa mosque was closed at ...",
+      "source_name": "Instagram",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://newrepublic.com/article/119182/jihadists-buy-islam-dummies-amazon",
+      "title": "Jihadists Buy 'Islam for Dummies' on Amazon | The New Republic",
+      "source_name": "The New Republic",
+      "match_type": "visual_matches",
+      "date": "2014-08-22",
+      "context": null
+    },
+    {
+      "url": "https://www.israelnationalnews.com/news/339096",
+      "title": "A Guide to the Galaxy of Islamic Anti-Semitism | Israel ...",
+      "source_name": "Israel National News",
+      "match_type": "visual_matches",
+      "date": "2011-08-15",
+      "context": null
+    },
+    {
+      "url": "https://www.send.org/blog/10-10-prayer-ramadan",
+      "title": "Prayer for the Muslim world: Night of Power",
+      "source_name": "SEND International",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.middleeasteye.net/opinion/filtering-prophecies-sealing-fate-al-aqsa",
+      "title": "Filtering prophecies: Sealing the fate of al-Aqsa | Middle East ...",
+      "source_name": "Middle East Eye",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.theguardian.com/world/2016/jul/06/ramadan-eid-al-fitr-islam-muslim-identity",
+      "title": "Celebrating Eid: 'As a conflicted Muslim, this day doesn't ...",
+      "source_name": "The Guardian",
+      "match_type": "visual_matches",
+      "date": "2016-07-06",
+      "context": null
+    },
+    {
+      "url": "https://www.cnn.com/2016/07/07/world/muslims-eid-defying-terror-irpt",
+      "title": "Eid 2016: In the face of terror, Muslims welcome Eid-al-Fitr ...",
+      "source_name": "CNN",
+      "match_type": "visual_matches",
+      "date": "2016-07-07",
+      "context": null
+    },
+    {
+      "url": "https://www.bloomberg.com/news/articles/2017-07-28/thousands-worship-at-jerusalem-shrine-amid-clashes-in-west-bank",
+      "title": "Thousands Worship at Jerusalem Shrine Amid Clashes in West ...",
+      "source_name": "Bloomberg.com",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.facebook.com/MSalahOfficial/posts/eid-prayer-egypt/1478618783636109/",
+      "title": "Eid Prayer Egypt",
+      "source_name": "Facebook",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.upi.com/Top_News/US/2018/05/29/US-report-slams-religious-persecution-in-Russia-Iran-other-nations/3841527611630/",
+      "title": "U.S. report slams religious persecution in Russia, Iran, other ...",
+      "source_name": "UPI",
+      "match_type": "visual_matches",
+      "date": "2018-05-29",
+      "context": null
+    },
+    {
+      "url": "https://english.alarabiya.net/News/middle-east/2025/05/23/what-is-eid-aladha-and-why-is-it-important-for-muslims-",
+      "title": "What is Eid al-Adha and why is it important for Muslims?",
+      "source_name": "Al Arabiya",
+      "match_type": "visual_matches",
+      "date": "2025-05-23",
+      "context": null
+    },
+    {
+      "url": "https://www.rferl.org/a/New_Mosque_Project_Highlights_Moscows_Ethnic_Tensions/2168636.html",
+      "title": "New Mosque Project Highlights Moscow's Ethnic Tensions",
+      "source_name": "Radio Free Europe",
+      "match_type": "visual_matches",
+      "date": "2010-09-26",
+      "context": "Moscow has just four mosques to meet the spiritual needs of the city's 2 million Muslims. But nevertheless, a plan to build a new mosque in the Russian capital is sparking fierce resistance."
+    },
+    {
+      "url": "https://www.timesofisrael.com/muslims-worldwide-celebrate-eid-al-fitr-but-festivities-marred-by-war-in-gaza/",
+      "title": "Muslims worldwide celebrate Eid al-Fitr, but festivities ...",
+      "source_name": "The Times of Israel",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://stock.adobe.com/search?k=\"muslim+praise\"",
+      "title": "Muslim Praise\" Images \u2013 Browse 59 Stock Photos, Vectors, and ...",
+      "source_name": "Adobe Stock",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.defensemedianetwork.com/stories/tsas-notice-to-fliers-about-ramadan/",
+      "title": "TSA's Notice to Fliers About Ramadan | Defense Media Network",
+      "source_name": "Defense Media Network",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.usatoday.com/story/news/nation/2024/04/08/eid-al-fitr-what-to-know-about-the-islamic-holiday/73193404007/",
+      "title": "Eid al-Fitr: What to know about the Islamic holiday",
+      "source_name": "USA Today",
+      "match_type": "visual_matches",
+      "date": "2024-04-08",
+      "context": null
+    },
+    {
+      "url": "https://www.barrons.com/video/senegal-muslims-mark-the-end-of-ramadan-with-eid-al-fitr-prayers/4CE8FB68-B6C1-4EED-8B5A-AB46B9D11DBC",
+      "title": "Senegal: Muslims mark the end of Ramadan with Eid al-Fitr ...",
+      "source_name": "Barron's",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.aljazeera.com/news/2022/5/2/ethiopian-police-and-muslim-worshipers-clash-in-addis-ababa",
+      "title": "Ethiopian police and Muslim worshippers clash in Addis Ababa ...",
+      "source_name": "Al Jazeera",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.reutersconnect.com/item/eid-al-adha-prayer-in-yemen/dGFnOnJldXRlcnMuY29tLDIwMjY6bmV3c21sX01UMUFOQURMMDAwT1MyTzg4",
+      "title": "Licensable picture: Eid al-Adha prayer in Yemen | Reuters ...",
+      "source_name": "Reuters Connect",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=S2l8BF9f88E",
+      "title": "Muslims around the world celebrate Eid al-Adha - YouTube",
+      "source_name": "YouTube",
+      "match_type": "visual_matches",
+      "date": "2025-06-07",
+      "context": null
+    },
+    {
+      "url": "https://www.thoughtco.com/arab-spring-impact-on-middle-east-2353038",
+      "title": "Arab Spring Impact on the Middle East Today",
+      "source_name": "ThoughtCo",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.quranspeaks.com/post/do-muslim-men-and-women-pray-differently",
+      "title": "Do Muslim Men and Women Pray Differently?",
+      "source_name": "Let The Quran Speak",
+      "match_type": "visual_matches",
+      "date": "2022-09-01",
+      "context": null
+    },
+    {
+      "url": "https://www.meccharlotte.org/",
+      "title": "Muslim Education Center (MEC) at Charlotte,NC",
+      "source_name": "www.meccharlotte.org",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://english.elpais.com/elpais/2019/03/28/inenglish/1553761997_485839.html",
+      "title": "Muslims in Europe: Islam by numbers | The Global Observer ...",
+      "source_name": "EL PA\u00cdS English",
+      "match_type": "visual_matches",
+      "date": "2019-03-28",
+      "context": null
+    },
+    {
+      "url": "https://www.christianpost.com/news/muslims-have-right-to-religious-freedom-in-america-too-russell-moore-says.html",
+      "title": "Muslims Have Right to Religious Freedom in America Too ...",
+      "source_name": "Christian Post",
+      "match_type": "visual_matches",
+      "date": "2016-06-09",
+      "context": null
+    },
+    {
+      "url": "https://www.wqow.com/news/as-the-federal-surge-draws-down-minneapolis-muslim-community-is-hopeful-ramadan-will-inspire-its/article_b3637d8c-9a2b-5dda-bd5d-1a513a70c4e0.html",
+      "title": "As the federal surge draws down, Minneapolis' Muslim ...",
+      "source_name": "WQOW",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.shutterstock.com/video/clip-1034232809-large-crowd-muslim-people-praying-namaz-ramadan",
+      "title": "Large Crowd Muslim People Praying Namaz Stock Footage Video ...",
+      "source_name": "Shutterstock",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.news-journalonline.com/story/news/2012/08/19/area-muslims-end-ramadan-with-celebration-at-city-island/30594907007/",
+      "title": "Area Muslims end Ramadan with celebration at City Island",
+      "source_name": "Daytona Beach News-Journal",
+      "match_type": "visual_matches",
+      "date": "2012-08-19",
+      "context": null
+    },
+    {
+      "url": "https://www.livemint.com/news/world/jumat-ul-vida-2024-date-history-and-significance-11712230431629.html",
+      "title": "Jamat ul Vida 2024: Check dates, history, significance ...",
+      "source_name": "Mint",
+      "match_type": "visual_matches",
+      "date": "2024-04-04",
+      "context": null
+    },
+    {
+      "url": "https://www.france24.com/en/20100202-french-muslims-fear-rise-islamophobia-after-mosque-attack",
+      "title": "French Muslims fear rise in Islamophobia after mosque attack ...",
+      "source_name": "France 24",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://learningenglish.voanews.com/a/turkey-launches-mosque-building-program/2702110.html",
+      "title": "Turkey Launches International Mosque-Building Program",
+      "source_name": "VOA Learning English",
+      "match_type": "visual_matches",
+      "date": "2015-04-01",
+      "context": null
+    },
+    {
+      "url": "https://www.dawn.com/news/1984062",
+      "title": "Jerusalem's Muslims despair on Eidul Fitr as access to Al ...",
+      "source_name": "Dawn",
+      "match_type": "visual_matches",
+      "date": "2026-03-20",
+      "context": null
+    },
+    {
+      "url": "https://x.com/aguribfakim/status/2058946564882620591",
+      "title": "I wonder which planet this family lives in?!?.. it cannot be ...",
+      "source_name": "x.com",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.reutersconnect.com/item/eid-al-adha-prayer-in-morocco/dGFnOnJldXRlcnMuY29tLDIwMjY6bmV3c21sX01UMUFOQURMMDAwT1MyUlZZ",
+      "title": "Licensable picture: Eid al-Adha prayer in Morocco | Reuters ...",
+      "source_name": "Reuters Connect",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.facebook.com/trtworld/posts/in-pictures-showing-their-resilience-and-strong-faith-besieged-palestinians-perf/1158439059651667/",
+      "title": "In pictures: Showing their resilience and strong faith ...",
+      "source_name": "Facebook",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.africanews.com/2024/04/10/kenya-muslims-pray-for-palestinians-as-they-mark-end-of-ramadan/",
+      "title": "Kenya Muslims pray for Palestinians as they mark end of ...",
+      "source_name": "Africa News",
+      "match_type": "visual_matches",
+      "date": "2024-04-10",
+      "context": null
+    },
+    {
+      "url": "https://www.foreignaffairs.com/articles/middle-east/2021-11-04/wars-within-islam-are-not-over",
+      "title": "The Wars Within Islam Are Not Over | Foreign Affairs",
+      "source_name": "Foreign Affairs",
+      "match_type": "visual_matches",
+      "date": "2021-11-04",
+      "context": null
+    },
+    {
+      "url": "https://www.independent.co.uk/news/world/middle-east/one-of-the-world-s-biggest-and-most-dangerous-pilgrimages-is-underway-9882702.html",
+      "title": "One of the world's biggest and most dangerous pilgrimages is ...",
+      "source_name": "The Independent",
+      "match_type": "visual_matches",
+      "date": "2014-11-25",
+      "context": null
+    },
+    {
+      "url": "https://www.brookings.edu/articles/why-is-america-reaching-out-to-the-muslim-brotherhood/",
+      "title": "Why is America Reaching Out to the Muslim Brotherhood ...",
+      "source_name": "Brookings Institution",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://eualive.net/international-outrage-intensifies-over-israels-treatment-of-gaza-flotilla-activists/",
+      "title": "International outrage intensifies over Israel's treatment of ...",
+      "source_name": "EUalive",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.nytimes.com/column/wajahat-ali",
+      "title": "Wajahat Ali - The New York Times",
+      "source_name": "The New York Times",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.globaltimes.cn/page/202104/1221308.shtml",
+      "title": "Holy Ramadan! Visit Islamic shrine in Jerusalem - Global Times",
+      "source_name": "Global Times",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.gettyimages.com/editorial-images/news/event/iraqi-shiite-muslims-pray-under-armed-guard-at-ain-al-baih-mosque/2558308",
+      "title": "13 Photos & High Res Pictures - Getty Images",
+      "source_name": "Getty Images",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.ndtv.com/world-news/spain-orders-town-to-scrap-motion-restricting-muslim-festivities-9065590",
+      "title": "Spain Orders Town To Scrap Motion Restricting Muslim Festivities",
+      "source_name": "NDTV",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.instagram.com/p/DVQlyeRk4J4/",
+      "title": "Thousands offer prayers on the second Friday of Ramadan, at ...",
+      "source_name": "Instagram",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.voanews.com/a/british-teen-girls-syria-islamic-state/2652996.html",
+      "title": "3 British Teen Girls Feared Headed to Syria to Join Islamic ...",
+      "source_name": "VOA",
+      "match_type": "visual_matches",
+      "date": "2015-02-20",
+      "context": null
+    },
+    {
+      "url": "https://www.middleeastmonitor.com/20180609-280000-palestinians-pray-at-al-aqsa-on-last-friday-of-ramadan/",
+      "title": "280,000 Palestinians pray at Al-Aqsa on last Friday of ...",
+      "source_name": "Middle East Monitor",
+      "match_type": "visual_matches",
+      "date": "2018-06-09",
+      "context": null
+    },
+    {
+      "url": "http://news.bbc.co.uk/nol/shared/spl/hi/pop_ups/quick_guides/05/world_islam/print.stm",
+      "title": "BBC News | Quick Guide | Islam",
+      "source_name": "Home - BBC News - BBC",
+      "match_type": "visual_matches",
+      "date": null,
+      "context": null
+    },
+    {
+      "url": "https://www.thecairoreview.com/book-reviews/fields-of-blood/",
+      "title": "Fields of Blood \u2013 The Cairo Review of Global Affairs",
+      "source_name": "The Cairo Review of Global Affairs",
+      "match_type": "visual_matches",
+      "date": "2015-10-11",
+      "context": null
+    }
+  ],
+  "search_confidence": "high",
+  "image_url": "https://scontent-fra3-1.cdninstagram.com/v/t51.82787-15/626703887_18556126636024844_2990107075774378074_n.jpg?stp=c128.0.384.384a_dst-jpg_e35_s640x640_tt6&_nc_cat=103&ccb=7-5&_nc_sid=18de74&efg=eyJlZmdfdGFnIjoiRkVFRC5iZXN0X2ltYWdlX3VybGdlbi5DMyJ9&_nc_ohc=S6IhScVoZBgQ7kNvwHlUpla&_nc_oc=Adogg0njgT6kTHl9xuhByP7e45fa58ebAoGzja2ENGKbibrTbwKTO1U23TTzq349OSM&_nc_zt=23&_nc_ht=scontent-fra3-1.cdninstagram.com&_nc_gid=BPayhGelHMlQYur1W-GTmw&_nc_ss=7e60f&oh=00_Af57lejvH4aEVxHWhWy33CkBMmaAY1lcW3qrLKg3s-x5kQ&oe=6A1E2359",
+  "mode": "post"
 }

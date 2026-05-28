@@ -25,6 +25,10 @@ load_dotenv()
 # Never hardcode keys directly in code — if you push to GitHub, they get exposed.
 SERPAPI_KEY = os.getenv("SERPAPI_KEY")
 
+# Absolute path to the cache directory, anchored to this file's location.
+# This makes save/load work correctly no matter which directory you run Python from.
+_CACHE_DIR = Path(__file__).resolve().parent.parent / "tests" / "cached_responses"
+
 # Compiled once at module load — used by extract_date_from_url on every call.
 _DATE_SLASH   = re.compile(r'/(\d{4})/(\d{2})/(\d{2})/')       # /2019/03/14/
 _DATE_COMPACT = re.compile(r'/(\d{4})(\d{2})(\d{2})/')          # /20190314/
@@ -83,10 +87,9 @@ def save_response(data: dict, filename: str):
         filename: a name for the file, without extension. Example: "test_run_1"
     """
 
-    # Build the full path: tests/cached_responses/test_run_1.json
-    path = Path(f"tests/cached_responses/{filename}.json")
+    _CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    path = _CACHE_DIR / f"{filename}.json"
 
-    # Write the dict to disk as formatted JSON (indent=2 makes it readable)
     with open(path, "w") as f:
         json.dump(data, f, indent=2)
 
@@ -107,7 +110,7 @@ def load_response(filename: str) -> dict:
         The original dict, exactly as it was saved.
     """
 
-    path = Path(f"tests/cached_responses/{filename}.json")
+    path = _CACHE_DIR / f"{filename}.json"
 
     with open(path) as f:
         return json.load(f)
@@ -281,97 +284,183 @@ def get_page_context(url: str) -> dict:
         return fallback
 
 
-def run_stage1(image_url: str) -> dict:
+def extract_image_from_post(post_url: str) -> str | None:
     """
-    Main entry point for Stage 1. Takes an image URL and returns the
-    earliest known web appearance with full context.
+    Fetches a web page and extracts the main image URL from its Open Graph / Twitter meta tags.
 
-    Flow:
-      1. Reverse-search the image via SerpApi Google Lens.
-      2. Parse the response into a clean appearances list.
-      3. Fetch dates for ALL appearances in parallel (10 threads).
-      4. Find the oldest dated appearance.
-      5. Enrich it with page context (title, description, source).
+    Checks in priority order:
+      1. <meta property="og:image">           — standard Open Graph, used by most news sites
+      2. <meta name="twitter:image">          — Twitter card fallback
+      3. <meta property="og:image:secure_url"> — HTTPS-explicit variant of og:image
+
+    Returns the image URL string if found, or None if the page fails to load
+    or none of the tags are present. Never raises — failures are silent.
+    """
+    try:
+        # Fetch the post page with a browser-like User-Agent to avoid 403 blocks.
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(post_url, timeout=10, headers=headers)  # 10s timeout so slow pages don't hang
+        response.raise_for_status()  # treat 4xx/5xx as failures → caught below
+
+        # Parse the HTML so we can query meta tags by attribute.
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        # Check each meta tag in priority order; return the first one that has content.
+        meta_checks = [
+            ("property", "og:image"),             # most common — used by news sites, blogs, etc.
+            ("name",     "twitter:image"),         # Twitter card tag — second most common
+            ("property", "og:image:secure_url"),   # explicit HTTPS variant of og:image
+        ]
+        for attr, val in meta_checks:                          # iterate priority list
+            tag = soup.find("meta", attrs={attr: val})         # find the tag by attribute name+value
+            if tag and tag.get("content"):                     # make sure content is present and non-empty
+                return tag["content"]                          # return the image URL as-is
+
+    except Exception:
+        pass  # network error, timeout, 403, bad HTML — all silently return None
+
+    return None  # no image tag found on the page
+
+
+def run_stage1(input_url: str) -> dict:
+    """
+    Main entry point for Stage 1. Accepts either a direct image URL or a post URL.
+
+    If input_url points directly to an image file (.jpg/.jpeg/.png/.webp/.gif),
+    it is used as-is. Otherwise, the function treats it as a post URL and calls
+    extract_image_from_post() to pull the image URL out of the page's meta tags.
+
+    After resolving the image URL, it reverse-searches via SerpApi Google Lens,
+    fetches dates for all appearances in parallel, and returns the earliest one.
 
     Returns a dict with keys: earliest_appearance, all_appearances,
     search_confidence ("high" | "low" | "no_results").
+    Also returns "image_url" so callers know which image was actually searched.
     """
+    # Extensions that indicate a direct image file rather than a web page.
+    image_extensions = (".jpg", ".jpeg", ".png", ".webp", ".gif")
+
+    # Strip query strings before checking the extension (e.g. photo.jpg?size=large).
+    url_path = urlparse(input_url).path.lower()  # just the path portion, case-insensitive
+
+    if url_path.endswith(image_extensions):      # input looks like a direct image file
+        image_url = input_url                    # use it directly — no page fetch needed
+        mode = "direct"                          # record mode for the caller / __main__
+    else:                                        # input looks like a post / article URL
+        mode = "post"                            # record mode for the caller / __main__
+        image_url = extract_image_from_post(input_url)  # try to pull og:image from the page
+
+        if image_url is None:                    # the page loaded but had no usable image tag
+            # Return a clear error structure rather than crashing or silently returning nothing.
+            return {
+                "error": "Could not extract image from this URL. Please paste a direct image URL ending in .jpg or .png",
+                "earliest_appearance": None,
+                "all_appearances": [],
+                "search_confidence": "no_results",
+                "image_url": None,
+                "mode": mode,
+            }
+
+    # Reverse-search the resolved image URL via SerpApi Google Lens.
     raw_results = search_image_by_url(image_url)
+
+    # Convert the raw SerpApi JSON into a clean list of appearance dicts.
     appearances = parse_appearances(raw_results)
 
-    if not appearances:
+    if not appearances:                          # SerpApi found nothing at all
         return {
             "earliest_appearance": None,
             "all_appearances": [],
             "search_confidence": "no_results",
+            "image_url": image_url,
+            "mode": mode,
         }
 
-    # Fetch dates for all pages in parallel — 10x faster than sequential.
+    # Fetch publication dates for every appearance in parallel — 10 threads at once.
+    # Sequential fetching would take ~30s; parallel takes ~3-5s.
     with ThreadPoolExecutor(max_workers=10) as executor:
-        dates = list(executor.map(get_date_for_appearance, appearances))
-    for appearance, date in zip(appearances, dates):
-        appearance["date"] = date
+        dates = list(executor.map(get_date_for_appearance, appearances))  # one future per appearance
+    for appearance, date in zip(appearances, dates):  # zip preserves order (executor.map guarantees this)
+        appearance["date"] = date                     # write the date back into the appearance dict
 
+    # Find the appearance with the oldest date that passes the 1990-2030 sanity filter.
     earliest = find_earliest(appearances)
 
-    # Enrich the earliest appearance with readable context.
+    # Enrich the earliest result with human-readable context from its page.
     if earliest is not None:
-        ctx = get_page_context(earliest["url"])
-        if not earliest.get("title"):
+        ctx = get_page_context(earliest["url"])            # fetch title, description, source_name
+        if not earliest.get("title"):                      # only fill if SerpApi didn't provide one
             earliest["title"] = ctx["title"]
-        if not earliest.get("context"):
+        if not earliest.get("context"):                    # context is always None at this point
             earliest["context"] = ctx["description"]
-        if not earliest.get("source_name"):
+        if not earliest.get("source_name"):                # only fill if SerpApi didn't provide one
             earliest["source_name"] = ctx["source_name"]
 
+    # Confidence is "high" if at least one appearance has a parseable date.
     has_any_date = any(a.get("date") for a in appearances)
     search_confidence = "high" if has_any_date else "low"
 
     if earliest is not None:
         return {
             "earliest_appearance": {
-                "url": earliest["url"],
-                "date": earliest["date"],
-                "title": earliest.get("title", ""),
-                "context": earliest.get("context", ""),
+                "url":         earliest["url"],
+                "date":        earliest["date"],
+                "title":       earliest.get("title", ""),
+                "context":     earliest.get("context", ""),
                 "source_name": earliest.get("source_name", ""),
-                "match_type": earliest["match_type"],
+                "match_type":  earliest["match_type"],
             },
             "all_appearances": appearances,
             "search_confidence": search_confidence,
+            "image_url": image_url,  # the actual image that was searched
+            "mode": mode,            # "direct" or "post"
         }
 
+    # Appearances were found but none had a parseable date.
     return {
         "earliest_appearance": None,
         "all_appearances": appearances,
         "search_confidence": "low",
+        "image_url": image_url,
+        "mode": mode,
     }
 
 
 # ─────────────────────────────────────────────
 # Run Stage 1 end-to-end from the command line.
-# NOTE: tests/cached_responses must be a directory, not a file.
-# If you hit an error on the mkdir line, delete the 0-byte file at
-# astrodetect/tests/cached_responses and re-run — mkdir will recreate
-# it as a proper folder.
 # ─────────────────────────────────────────────
 if __name__ == "__main__":
 
-    url = input("Paste image URL: ")
-    result = run_stage1(url)
+    url = input("Paste image or post URL: ")  # accept either a direct image URL or a post URL
 
-    earliest = result["earliest_appearance"]
-    print(f"\nSearch confidence: {result['search_confidence']}")
+    # Tell the user what mode was detected before making any network calls.
+    image_extensions = (".jpg", ".jpeg", ".png", ".webp", ".gif")
+    url_path = urlparse(url).path.lower()        # check the path portion of the URL
+    if url_path.endswith(image_extensions):      # ends with an image extension → direct mode
+        print("Direct image URL detected")
+    else:                                        # no image extension → treat as a post page
+        print("Post URL detected — extracting image...")
 
-    if earliest:
-        print(f"Earliest URL:  {earliest['url']}")
-        print(f"Date:          {earliest['date']}")
-        print(f"Source:        {earliest['source_name']}")
+    result = run_stage1(url)  # run the full pipeline
+
+    # If the image could not be extracted from a post URL, print the error and stop.
+    if result.get("error"):
+        print(f"\nError: {result['error']}")
     else:
-        print("No dateable appearance found.")
+        earliest = result["earliest_appearance"]      # the oldest dated web appearance
+        print(f"\nImage searched:    {result.get('image_url')}")
+        print(f"Search confidence: {result['search_confidence']}")
 
-    out_path = Path("tests/cached_responses/stage1_result.json")
-    out_path.parent.mkdir(parents=True, exist_ok=True)
+        if earliest:                                  # at least one dated appearance was found
+            print(f"Earliest URL:      {earliest['url']}")
+            print(f"Date:              {earliest['date']}")
+            print(f"Source:            {earliest['source_name']}")
+        else:                                         # appearances found but none had a date
+            print("No dateable appearance found.")
+
+    # Save the full result to disk regardless of outcome — useful for debugging.
+    out_path = _CACHE_DIR / "stage1_result.json"
+    _CACHE_DIR.mkdir(parents=True, exist_ok=True)    # create the directory if it doesn't exist yet
     with open(out_path, "w") as f:
-        json.dump(result, f, indent=2)
+        json.dump(result, f, indent=2)               # indent=2 makes the file human-readable
     print(f"\nFull result saved to {out_path}")
