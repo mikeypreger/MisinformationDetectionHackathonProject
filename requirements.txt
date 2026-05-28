@@ -1,0 +1,12 @@
+streamlit
+requests
+python-dotenv
+spacy
+openai
+open_clip_torch
+torch
+torchvision
+Pillow
+numpy
+scipy
+scikit-learn

@@ -1,102 +1,3 @@
-# import numpy as np
-# from sklearn.decomposition import PCA
-# from sklearn.covariance import LedoitWolf
-# from scipy.stats import chi2
-
-# class EngineCore:
-#     def __init__(self, max_pca_dims=50, mad_threshold=3.0, p_value_threshold=0.05):
-#         self.max_pca_dims = max_pca_dims
-#         self.mad_threshold = mad_threshold
-#         self.p_value_threshold = p_value_threshold
-
-#     def mad_filter(self, corpus_matrix):
-#         """Removes extreme outliers scraped by the API using Median Absolute Deviation."""
-#         n_samples = corpus_matrix.shape[0]
-#         if n_samples < 5:
-#             return corpus_matrix # Not enough data to safely filter outliers
-
-#         # Calculate distance of each point to the centroid
-#         centroid = np.median(corpus_matrix, axis=0)
-#         distances = np.linalg.norm(corpus_matrix - centroid, axis=1)
-
-#         # Calculate MAD
-#         median_dist = np.median(distances)
-#         mad = np.median(np.abs(distances - median_dist))
-
-#         # Prevent division by zero if all images are perfectly identical
-#         if mad == 0:
-#             mad = 1e-6
-
-#         # Filter condition: keep images within the MAD threshold
-#         modified_z_scores = 0.6745 * (distances - median_dist) / mad
-#         clean_indices = np.abs(modified_z_scores) < self.mad_threshold
-
-#         clean_corpus = corpus_matrix[clean_indices]
-
-#         print(f"MAD Filter: Removed {n_samples - len(clean_corpus)} garbage images.")
-#         return clean_corpus
-
-#     def execute_pipeline(self, query_vector, raw_corpus_matrix):
-#         """
-#         Runs the full 4-stage Engine Core pipeline.
-#         Returns a dictionary with the statistical verdict.
-#         """
-#         # Edge Case 1: NaN values from a failed API embedding
-#         if np.isnan(query_vector).any() or np.isnan(raw_corpus_matrix).any():
-#             return {"status": "error", "message": "NaN values detected in embeddings."}
-
-#         # Step 1: MAD Filter
-#         clean_corpus = self.mad_filter(raw_corpus_matrix)
-#         n_samples = clean_corpus.shape[0]
-
-#         # Edge Case 2: Not enough valid images survived the filter
-#         if n_samples < 3:
-#             return {"status": "error", "message": f"Only {n_samples} valid reference images survived filtering. Cannot compute variance."}
-
-#         # Step 2: PCA Subspace
-#         # Dynamically size the space based on surviving images, capped for speed
-#         target_dims = min(n_samples - 1, self.max_pca_dims)
-#         pca = PCA(n_components=target_dims)
-
-#         try:
-#             corpus_reduced = pca.fit_transform(clean_corpus)
-#             query_reduced = pca.transform(query_vector.reshape(1, -1))[0]
-#         except Exception as e:
-#             return {"status": "error", "message": f"PCA projection failed: {e}"}
-
-#         # Step 3: Ledoit-Wolf Mahalanobis
-#         try:
-#             lw = LedoitWolf().fit(corpus_reduced)
-#             cov_inv = np.linalg.inv(lw.covariance_)
-#             mean_ref = np.mean(corpus_reduced, axis=0)
-
-#             delta = query_reduced - mean_ref
-#             mahalanobis_sq = np.dot(np.dot(delta, cov_inv), delta.T)
-#             mahalanobis_dist = np.sqrt(max(0.0, mahalanobis_sq))
-
-#         except Exception as e:
-#              return {"status": "error", "message": f"Covariance estimation failed: {e}"}
-
-#         # Step 4: p-value Anomaly Check
-#         # Degrees of freedom equals the number of PCA dimensions used
-#         degrees_of_freedom = target_dims
-
-#         # Calculate the probability that a true image would be this far away
-#         # 1.0 minus the Cumulative Distribution Function
-#         p_value = 1.0 - chi2.cdf(mahalanobis_sq, degrees_of_freedom)
-
-#         # Final Verdict
-#         is_anomaly = p_value < self.p_value_threshold
-
-#         return {
-#             "status": "success",
-#             "is_anomaly": is_anomaly,
-#             "p_value": float(p_value),
-#             "mahalanobis_distance": float(mahalanobis_dist),
-#             "pca_dimensions_used": target_dims,
-#             "images_used": n_samples
-#         }
-
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.covariance import LedoitWolf
@@ -305,9 +206,14 @@ class EngineCore:
         return {
             "status": "success",
             "is_anomaly": is_anomaly,
-            "p_value": float(p_value),
-            "gmm_query_log_likelihood": float(query_score),
-            "gmm_components_used": n_components_used,
-            "pca_dimensions_used": int(target_dims),
-            "images_used": int(n_samples)
+            "metrics": {
+                "p_value": float(p_value),
+                "gmm_query_log_likelihood": float(query_score)
+            },
+            "diagnostics": {
+                "gmm_components_used": n_components_used,
+                "pca_dimensions_used": int(target_dims),
+                "images_used": int(n_samples),
+                "images_filtered": int(raw_corpus_matrix.shape[0] - n_samples)
+            }
         }
