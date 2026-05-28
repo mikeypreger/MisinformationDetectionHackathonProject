@@ -124,27 +124,48 @@ _OG_PATTERNS = [
     r'<meta[^>]+content=["\']([^"\'<>]+)["\'][^>]+name=["\']twitter:image["\']',
 ]
 
+# URL path fragments that indicate a logo/brand image rather than a content photo
+_LOGO_TOKENS = (
+    "logo", "brand", "placeholder", "metatag", "og-image.",
+    "default-image", "fallback", "favicon", "icon", "badge",
+)
+
+_MOBILE_UA = (
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) "
+    "AppleWebKit/605.1.15 (KHTML, like Gecko) "
+    "Version/16.0 Mobile/15E148 Safari/604.1"
+)
+
+
+def _is_logo_url(url: str) -> bool:
+    """Return True if the URL path suggests a logo or generic site image."""
+    path = url.lower().split("?")[0]
+    return any(tok in path for tok in _LOGO_TOKENS)
+
 
 def _og_image_from_url(page_url: str) -> str | None:
-    """Fetch a page and return its og:image or twitter:image URL, or None."""
+    """
+    Fetch a page with a mobile User-Agent and return its og:image URL, or None.
+    Uses 12KB read limit (og:image is always in <head>, within first 5KB) and
+    5s timeout. Rejects extracted URLs that look like logos or generic og:images.
+    """
     try:
         resp = requests.get(
-            page_url, timeout=8,
-            headers={"User-Agent": "Mozilla/5.0"},
+            page_url, timeout=5,
+            headers={"User-Agent": _MOBILE_UA},
             stream=True,
         )
-        # Read only the first 30KB — og:image is always in <head>
         content = b""
         for chunk in resp.iter_content(chunk_size=4096):
             content += chunk
-            if len(content) > 30_000:
+            if len(content) > 12_000:
                 break
         text = content.decode("utf-8", errors="ignore")
         for pattern in _OG_PATTERNS:
             m = re.search(pattern, text, re.I | re.S)
             if m:
                 img = m.group(1).strip()
-                if img.startswith("http"):
+                if img.startswith("http") and not _is_logo_url(img):
                     return img
     except Exception:
         pass
@@ -202,11 +223,15 @@ def _download_one(url: str) -> Image.Image | None:
     try:
         resp = requests.get(
             url, timeout=10,
-            headers={"User-Agent": "Mozilla/5.0"},
+            headers={"User-Agent": _MOBILE_UA},
             stream=True,
         )
         resp.raise_for_status()
-        return Image.open(io.BytesIO(resp.content)).convert("RGB")
+        img = Image.open(io.BytesIO(resp.content)).convert("RGB")
+        # Reject tiny images (logos, icons) — real content photos are >= 80px on each side
+        if min(img.size) < 80:
+            return None
+        return img
     except Exception:
         return None
 

@@ -57,9 +57,15 @@ def _poll_snapshot(snapshot_id: str, timeout: int = 120, interval: int = 5) -> l
     print(f"[social_scraper] poll timed out after {timeout}s")
     return None
 
+_IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif")
+
 
 def _extract_fields(record: dict) -> tuple[str | None, str]:
-    """Extract (image_url, caption) from a single record with modern schemas."""
+    """
+    Extract (image_url, caption) from a Bright Data record.
+    Covers flat fields, platform-specific nested schemas, and a generic URL scan fallback.
+    Logs record keys when extraction fails so new schemas can be diagnosed.
+    """
     caption = ""
     for field in ("caption", "text", "content", "title", "description"):
         val = record.get(field)
@@ -68,22 +74,24 @@ def _extract_fields(record: dict) -> tuple[str | None, str]:
             break
 
     image_url = None
-    # PATCH: Added "post_image" to the flat lookup fields sequence
+
+    # 1. Broad flat field lookup (covers Facebook, most platforms)
     for field in ("post_image", "display_url", "image_url", "media_url", "thumbnail_url",
-                  "image", "photo_url", "cover_image"):
+                  "thumbnail", "image", "photo_url", "cover_image"):
         val = record.get(field)
         if val and isinstance(val, str) and val.startswith("http"):
             image_url = val
             break
 
-    # PATCH: Added "attachments" array processing into the nested parser fallback
+    # 2. Nested gallery arrays (Instagram, Facebook galleries)
     if image_url is None:
-        for gallery_field in ("attachments", "media_gallery", "images", "media"):
+        for gallery_field in ("photos", "post_content", "attachments",
+                              "media_gallery", "images", "media"):
             gallery = record.get(gallery_field)
             if isinstance(gallery, list) and gallery:
                 first = gallery[0]
                 if isinstance(first, dict):
-                    for f in ("url", "display_url", "image_url", "src"):
+                    for f in ("url", "display_url", "image_url", "src", "thumbnail"):
                         v = first.get(f)
                         if v and isinstance(v, str) and v.startswith("http"):
                             image_url = v
@@ -93,8 +101,54 @@ def _extract_fields(record: dict) -> tuple[str | None, str]:
                 if image_url:
                     break
 
-    return image_url, caption
+    # 3. Twitter/X — media entities
+    if image_url is None:
+        media_list = (record
+                      .get("entities", {})
+                      .get("media", []))
+        if media_list and isinstance(media_list, list):
+            m = media_list[0]
+            if isinstance(m, dict):
+                image_url = (m.get("media_url_https")
+                             or m.get("media_url"))
 
+    # 4. TikTok — video cover
+    if image_url is None:
+        video = record.get("video") or {}
+        if isinstance(video, dict):
+            image_url = (video.get("origin_cover")
+                         or video.get("cover")
+                         or video.get("dynamic_cover"))
+
+    # 5. Reddit — preview images
+    if image_url is None:
+        preview_imgs = (record
+                        .get("preview", {})
+                        .get("images", []))
+        if preview_imgs and isinstance(preview_imgs, list):
+            src = preview_imgs[0].get("source", {})
+            if isinstance(src, dict):
+                image_url = src.get("url")
+                # Reddit HTML-encodes ampersands in preview URLs
+                if image_url:
+                    image_url = image_url.replace("&amp;", "&")
+
+    # 6. Generic fallback — scan all string values for image-extension URLs
+    if image_url is None:
+        for v in record.values():
+            if (isinstance(v, str)
+                    and v.startswith("http")
+                    and any(v.lower().split("?")[0].endswith(ext)
+                            for ext in _IMAGE_EXTENSIONS)):
+                image_url = v
+                break
+
+    if image_url is None:
+        print(f"[social_scraper] could not extract image. "
+              f"Record keys: {list(record.keys())} | "
+              f"Sample: {str(record)[:300]}")
+
+    return image_url, caption
 
 def scrape_post(normalized_url: str, platform_key: str) -> dict:
     """

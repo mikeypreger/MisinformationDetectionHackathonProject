@@ -162,7 +162,17 @@ def _render_ui():
         placeholder="https://www.instagram.com/p/SHORTCODE/",
     )
 
-    if st.button("Analyze", type="primary") and url_input.strip():
+    if "analyzing" not in st.session_state:
+        st.session_state.analyzing = False
+
+    btn_label = "Analyzing…" if st.session_state.analyzing else "Analyze"
+    analyze = st.button(
+        btn_label, type="primary",
+        disabled=st.session_state.analyzing,
+    )
+
+    if analyze and url_input.strip() and not st.session_state.analyzing:
+        st.session_state.analyzing = True
         spinner_msg = {
             1: "Scraping post…",
             2: "Scraping + extracting queries…",
@@ -170,8 +180,11 @@ def _render_ui():
             4: "Running full pipeline… this may take 1-2 minutes",
         }[stage]
 
-        with st.spinner(spinner_msg):
-            result = run_pipeline(url_input.strip(), stage=stage)
+        try:
+            with st.spinner(spinner_msg):
+                result = run_pipeline(url_input.strip(), stage=stage)
+        finally:
+            st.session_state.analyzing = False
 
         # Always show raw JSON for partial stages
         completed_stage = result.get("pipeline_stage", stage)
