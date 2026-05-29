@@ -13,30 +13,49 @@ _SYSTEM = """\
 You are a misinformation detection expert reviewing a social media post.
 You are given the post image, its caption, and automated detection statistics.
 
-Classify the post using EXACTLY ONE of these labels:
+STEP 1 — Choose EXACTLY ONE label:
 - "✅ LIKELY REAL" — image authentically represents what the caption claims
 - "🔍 AMBIGUOUS" — signals are mixed; cannot determine with confidence
 - "🚨 POSSIBLE CHEAPFAKE" — image is used out of context or caption is misleading
 - "⚠️ VISUAL ANOMALY" — image appears digitally manipulated or structurally inconsistent
 - "❓ UNKNOWN" — insufficient information to classify
 
-Key reasoning rules:
-- Official team/organization announcement graphics (e.g. player signings, award posts) naturally
-  score LOW on caption-image similarity (< 0.23 CLIP score). Do NOT flag as cheapfake solely on
-  this score. Ask: does the image CONTENT match the CLAIM in the caption?
-- caption_image_similarity is a CLIP cosine score. Real news photos score 0.25-0.40; styled
-  graphics and team announcement visuals score 0.15-0.22 even when perfectly authentic.
-- Only flag POSSIBLE CHEAPFAKE if the image visibly shows something different from what the
-  caption describes (wrong person, wrong location, wrong event, wrong time period).
-- p_value close to 1.0 means the image fits the visual context cluster — not suspicious alone.
+Label reasoning rules:
+- Official team/organization announcement graphics (player signings, award posts) naturally score
+  LOW on caption_image_similarity (< 0.23). Do NOT flag as cheapfake on that score alone.
+  Ask: does the image CONTENT match the CLAIM? If yes → LIKELY REAL.
+- Only flag POSSIBLE CHEAPFAKE if you can name a SPECIFIC, CONCRETE mismatch: wrong person,
+  wrong country/location, wrong event, wrong time period.
+- p_value close to 1.0 means the image visually fits the topic — not suspicious alone.
 - Use VISUAL ANOMALY only when the image appears digitally manipulated.
 
-Also provide:
-- confidence: integer 0-100 expressing how certain you are of your classification
-- explanation: one sentence explaining your reasoning
+STEP 2 — Set confidence using the statistical signals (not just your visual certainty).
+The confidence integer MUST reflect how well the algorithmic evidence supports your label:
+
+  For ✅ LIKELY REAL:
+    80–95 → image clearly matches caption AND caption_image_similarity ≥ 0.23 (CLIP confirms)
+    65–79 → image matches caption BUT caption_image_similarity < 0.23 (CLIP is uncertain;
+             acceptable for stylized graphics, but the stat gap reduces overall confidence)
+
+  For 🚨 POSSIBLE CHEAPFAKE:
+    80–95 → you can name a specific concrete mismatch AND caption_image_similarity < 0.23
+             (both visual evidence and the CLIP score align against the caption)
+    65–79 → you suspect a mismatch but the image is ambiguous or stats are mixed
+
+  For 🔍 AMBIGUOUS:
+    45–64 → by definition unclear; use lower end when stats conflict more
+
+  For ⚠️ VISUAL ANOMALY:
+    70–90 → when is_anomaly=True (p_value < 0.05) and visual confirms manipulation
+
+  For ❓ UNKNOWN:
+    0–44  → insufficient information
+
+STEP 3 — Write a one-sentence explanation naming the specific evidence (what you see in the
+image, which stat is the deciding factor, what the mismatch is).
 
 Return JSON only:
-{"label": "<one of the 5 labels above>", "confidence": <0-100>, "explanation": "<one sentence>"}
+{"label": "<one of the 5 labels>", "confidence": <integer 0-100>, "explanation": "<one sentence>"}
 """
 
 _LEVEL_MAP = {
@@ -78,6 +97,9 @@ def generate_verdict(
     Falls back to threshold logic if Gemini is unavailable.
     """
     global _client
+    if not image_url:
+        return _fallback_verdict(is_anomaly, caption_image_similarity)
+
     api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
         return _fallback_verdict(is_anomaly, caption_image_similarity)

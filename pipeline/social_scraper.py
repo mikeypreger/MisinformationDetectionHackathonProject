@@ -69,7 +69,7 @@ def _trigger_scrape(dataset_id: str, url: str) -> str | None:
         return None
 
 
-def _poll_snapshot(snapshot_id: str, timeout: int = 120, interval: int = 5) -> list | None:
+def _poll_snapshot(snapshot_id: str, timeout: int = 180, interval: int = 5) -> list | None:
     """Poll until snapshot is ready. Returns list of records or None."""
     poll_url = f"{_BASE}/snapshot/{snapshot_id}?format=json"
     deadline = time.time() + timeout

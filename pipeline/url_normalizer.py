@@ -46,16 +46,17 @@ def _normalize_facebook(parsed) -> str:
     qs = parse_qs(parsed.query)
     if "fbid" in qs:
         fbid = qs["fbid"][0]
-        return f"https://www.facebook.com/photo?fbid={fbid}"
-    # Try /posts/ or /videos/ path patterns
-    m = re.search(r'/posts/(\d+)', parsed.path)
+        return f"https://m.facebook.com/photo?fbid={fbid}"
+    # Match both numeric IDs and modern pfbid alphanumeric IDs
+    m = re.search(r'/posts/([A-Za-z0-9_-]+)', parsed.path)
     if m:
-        return f"https://www.facebook.com/posts/{m.group(1)}"
+        page = parsed.path.split("/posts/")[0].lstrip("/")
+        return f"https://m.facebook.com/{page}/posts/{m.group(1)}"
     m = re.search(r'/videos/(\d+)', parsed.path)
     if m:
-        return f"https://www.facebook.com/videos/{m.group(1)}"
-    # Fallback: strip query params and return cleaned URL
-    return urlunparse(parsed._replace(query="", fragment=""))
+        return f"https://m.facebook.com/videos/{m.group(1)}"
+    # Fallback: switch to mobile domain and strip params
+    return urlunparse(parsed._replace(netloc="m.facebook.com", query="", fragment=""))
 
 
 def _normalize_reddit(parsed) -> str:

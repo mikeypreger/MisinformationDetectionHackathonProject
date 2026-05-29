@@ -52,17 +52,27 @@ def parse_x(post):
 def parse_reddit(post):
     """Extracts images from Reddit scraped data."""
     images = []
-    # Reddit posts usually have a direct URL if it's an image post
+    # 1. Direct image link (i.redd.it or external image URL)
     url = post.get("url", "")
-    if url.endswith((".jpg", ".jpeg", ".png")):
+    if url and any(url.lower().split("?")[0].endswith(ext)
+                   for ext in (".jpg", ".jpeg", ".png", ".webp")):
         images.append(url)
-    # Handle Reddit image galleries
-    elif "media_metadata" in post and isinstance(post["media_metadata"], dict):
-        for media_id, media_data in post["media_metadata"].items():
-            if "s" in media_data and "u" in media_data["s"]:
-                # Reddit often escapes URLs in JSON, so we unescape them
-                clean_url = media_data["s"]["u"].replace("&amp;", "&")
-                images.append(clean_url)
+    # 2. Preview image — most common for link posts and crossposts
+    if not images:
+        preview = post.get("preview") or {}
+        imgs = preview.get("images", [])
+        if imgs and isinstance(imgs, list):
+            source = imgs[0].get("source", {})
+            src_url = source.get("url", "")
+            if src_url:
+                images.append(src_url.replace("&amp;", "&"))
+    # 3. Gallery posts (media_metadata)
+    if not images and "media_metadata" in post and isinstance(post["media_metadata"], dict):
+        for media_data in post["media_metadata"].values():
+            if isinstance(media_data, dict) and "s" in media_data:
+                u = media_data["s"].get("u", "")
+                if u:
+                    images.append(u.replace("&amp;", "&"))
     return images
 
 def parse_tiktok(post):
