@@ -405,17 +405,58 @@ def run_stage1(input_url: str) -> dict:
 
 # ── Public API used by MyApp.py ──────────────────────────────────────────────
 
+# context_enricher.py
+
 def run_reverse_image_search(image_url: str) -> dict:
     """
-    Reverse-search image_url via SerpAPI Google Lens.
-    Returns the run_stage1() result dict, which contains:
-        earliest_appearance: {url, date, source_name, title, context, match_type} | None
-        all_appearances:     list of dicts
-        search_confidence:   "high" | "low" | "no_results"
-    On any failure returns {"error": ..., "earliest_appearance": None, "all_appearances": []}.
+    Reverse-search a direct image URL via SerpAPI Google Lens.
+    Bypasses the post-URL extraction path in run_stage1() entirely,
+    since MyApp.py always passes a resolved image URL here.
     """
     try:
-        return run_stage1(image_url)
+        raw_results = search_image_by_url(image_url)
+        appearances = parse_appearances(raw_results)
+
+        if not appearances:
+            return {
+                "earliest_appearance": None,
+                "all_appearances": [],
+                "search_confidence": "no_results",
+                "image_url": image_url,
+            }
+
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            dates = list(executor.map(get_date_for_appearance, appearances))
+        for appearance, date in zip(appearances, dates):
+            appearance["date"] = date
+
+        earliest = find_earliest(appearances)
+
+        if earliest is not None:
+            ctx = get_page_context(earliest["url"])
+            if not earliest.get("title"):
+                earliest["title"] = ctx["title"]
+            if not earliest.get("context"):
+                earliest["context"] = ctx["description"]
+            if not earliest.get("source_name"):
+                earliest["source_name"] = ctx["source_name"]
+
+        has_any_date = any(a.get("date") for a in appearances)
+
+        return {
+            "earliest_appearance": {
+                "url":         earliest["url"],
+                "date":        earliest["date"],
+                "title":       earliest.get("title", ""),
+                "context":     earliest.get("context", ""),
+                "source_name": earliest.get("source_name", ""),
+                "match_type":  earliest["match_type"],
+            } if earliest else None,
+            "all_appearances": appearances,
+            "search_confidence": "high" if has_any_date else "low",
+            "image_url": image_url,
+        }
+
     except Exception as e:
         print(f"[context_enricher] reverse image search failed: {e}")
         return {
@@ -424,7 +465,6 @@ def run_reverse_image_search(image_url: str) -> dict:
             "all_appearances": [],
             "search_confidence": "no_results",
         }
-
 
 def _gps_dms_to_decimal(dms_tuple, ref: str) -> float | None:
     try:
