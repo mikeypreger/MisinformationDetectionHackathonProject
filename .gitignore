@@ -1,1 +1,34 @@
+# Secrets
 .env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# Runtime artifacts
+gemini_query_cache.json
+*.json.bak
+
+# Test/API response caches (regenerated on demand)
+tests/cached_responses/
+astrodetect/tests/cached_responses/
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+node_modules/
+__pycache__/

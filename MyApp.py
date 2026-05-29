@@ -1,5 +1,6 @@
 """
 MyApp.py  —  Miss Information
+MyApp.py  —  Miss Information
 """
 
 import json
@@ -26,6 +27,9 @@ from pipeline.verdict_generator import generate_verdict
 from pipeline.image_guardrail   import check_image_quality
 from pipeline.context_enricher  import run_reverse_image_search, extract_image_metadata
 from pipeline.forensic_summarizer import generate_forensic_summary
+from pipeline.image_guardrail   import check_image_quality
+from pipeline.context_enricher  import run_reverse_image_search, extract_image_metadata
+from pipeline.forensic_summarizer import generate_forensic_summary
 
 if DEV_MODE:
     import streamlit as st
@@ -38,6 +42,7 @@ def run_pipeline(
 ) -> dict:
     """Full pipeline — DINOv2 ViT-B/14 for anomaly detection, CLIP for caption similarity."""
 
+    # ── Stage 1: Normalize URL + scrape post ─────────────────────────────────
     # ── Stage 1: Normalize URL + scrape post ─────────────────────────────────
     try:
         normalized_url, platform_key = normalize_url(input_url)
@@ -93,6 +98,32 @@ def run_pipeline(
         }
 
     # ── Stage 2: Extract search queries from caption ──────────────────────────
+    # ── Phase 0: Visual Guardrail — download query image early ───────────────
+    # Download now so we can check quality before the expensive context-pool build.
+    try:
+        query_pil = load_image_from_url(image_url)
+    except Exception as e:
+        return {
+            "error": f"Failed to download post image: {e}",
+            "image_url": image_url,
+            "caption": caption,
+            "pipeline_stage": stage,
+        }
+
+    is_viable, guardrail_reason = check_image_quality(query_pil)
+    if not is_viable:
+        return {
+            "guardrail_blocked": True,
+            "guardrail_reason": guardrail_reason,
+            "input_url": input_url,
+            "normalized_url": normalized_url,
+            "platform": platform_key,
+            "image_url": image_url,
+            "caption": caption,
+            "pipeline_stage": 0,
+        }
+
+    # ── Stage 2: Extract search queries from caption ──────────────────────────
     queries = extract_search_queries(caption, post_url=normalized_url)
 
     if stage == 2:
@@ -106,6 +137,12 @@ def run_pipeline(
             "pipeline_stage": 2,
         }
 
+    # ── Phase 2.5: Context Enrichment (runs in parallel with context-pool fetch) ──
+    # Reverse image search and EXIF extraction happen while we build the context pool.
+    reverse_search  = run_reverse_image_search(image_url)
+    image_metadata  = extract_image_metadata(image_url)
+
+    # ── Stage 3: Fetch context image URLs ────────────────────────────────────
     # ── Phase 2.5: Context Enrichment (runs in parallel with context-pool fetch) ──
     # Reverse image search and EXIF extraction happen while we build the context pool.
     reverse_search  = run_reverse_image_search(image_url)
@@ -126,9 +163,12 @@ def run_pipeline(
             "context_image_urls_sample": context_urls[:20],
             "reverse_image_search": reverse_search,
             "image_metadata": image_metadata,
+            "reverse_image_search": reverse_search,
+            "image_metadata": image_metadata,
             "pipeline_stage": 3,
         }
 
+    # ── Stage 4: Full pipeline — embed → anomaly + caption score ─────────────
     # ── Stage 4: Full pipeline — embed → anomaly + caption score ─────────────
     context_pil_images = download_images_parallel(context_urls)
 
@@ -198,6 +238,16 @@ def run_pipeline(
         # Phase 5
         "forensic_verdict": forensic.get("verdict", "N/A"),
         "forensic_reasoning": forensic.get("reasoning", ""),
+        # Phase 2.5
+        "reverse_image_search": reverse_search,
+        "image_metadata": image_metadata,
+        # Existing Gemini verdict
+        "gemini_label": verdict_label,
+        "gemini_confidence": confidence,
+        "gemini_explanation": verdict_explanation,
+        # Phase 5
+        "forensic_verdict": forensic.get("verdict", "N/A"),
+        "forensic_reasoning": forensic.get("reasoning", ""),
         **stats,
     }
 
@@ -209,6 +259,9 @@ def _render_ui():
     st.set_page_config(page_title="Miss Information", page_icon="🔍", layout="centered")
     st.title("🔍 Miss Information")
     st.caption("Misinformation detection powered by statistical forensics")
+    st.set_page_config(page_title="Miss Information", page_icon="🔍", layout="centered")
+    st.title("🔍 Miss Information")
+    st.caption("Misinformation detection powered by statistical forensics")
 
     stage = st.selectbox(
         "Pipeline stage",
@@ -217,6 +270,8 @@ def _render_ui():
         format_func=lambda s: {
             1: "1 — Scrape post (caption + image URL)",
             2: "2 — + Extract search queries",
+            3: "3 — + Fetch context URLs + reverse search + EXIF",
+            4: "4 — Full pipeline (embed + anomaly + forensic summary)",
             3: "3 — + Fetch context URLs + reverse search + EXIF",
             4: "4 — Full pipeline (embed + anomaly + forensic summary)",
         }[s],
@@ -239,14 +294,29 @@ def _render_ui():
             1: "Scraping post…",
             2: "Scraping + extracting queries…",
             3: "Fetching context URLs + enrichment data…",
+            3: "Fetching context URLs + enrichment data…",
             4: "Running full pipeline… this may take 1–2 minutes",
         }[stage]
 
         try:
             with st.spinner(spinner_msg):
                 result = run_pipeline(url_input.strip(), stage=stage)
+                result = run_pipeline(url_input.strip(), stage=stage)
         finally:
             st.session_state.analyzing = False
+
+        # ── Phase 0: Guardrail short-circuit ─────────────────────────────────
+        if result.get("guardrail_blocked"):
+            st.warning(result["guardrail_reason"])
+            if result.get("image_url"):
+                st.subheader("Post image (blocked)")
+                try:
+                    st.image(load_image_from_url(result["image_url"]), width=400)
+                except Exception:
+                    st.image(result["image_url"], width=400)
+            with st.expander("Raw JSON payload"):
+                st.json(result)
+            return
 
         # ── Phase 0: Guardrail short-circuit ─────────────────────────────────
         if result.get("guardrail_blocked"):
@@ -265,6 +335,8 @@ def _render_ui():
 
         # Hard failure: no useful data at all (image download failed, bad URL, etc.)
         if "error" in result and not result.get("gemini_label") and not result.get("forensic_verdict"):
+        # Hard failure: no useful data at all (image download failed, bad URL, etc.)
+        if "error" in result and not result.get("gemini_label") and not result.get("forensic_verdict"):
             st.error(f"Pipeline error: {result['error']}")
             st.json(result)
             return
@@ -273,8 +345,17 @@ def _render_ui():
         if result.get("error") and result.get("is_anomaly") is None:
             st.warning(f"Statistical analysis unavailable: {result['error']}")
 
+        # Soft failure: stats couldn't run (too few context images) but other results are present
+        if result.get("error") and result.get("is_anomaly") is None:
+            st.warning(f"Statistical analysis unavailable: {result['error']}")
+
         if result.get("image_url"):
             st.subheader("Post image")
+            try:
+                _display_img = load_image_from_url(result["image_url"])
+                st.image(_display_img, width=400)
+            except Exception:
+                st.image(result["image_url"], width=400)
             try:
                 _display_img = load_image_from_url(result["image_url"])
                 st.image(_display_img, width=400)
@@ -332,6 +413,40 @@ def _render_ui():
                     else:
                         st.write("GPS               : N/A")
 
+        # ── Phase 2.5: Reverse image search + EXIF ───────────────────────────
+        rev  = result.get("reverse_image_search", {})
+        meta = result.get("image_metadata", {})
+        if rev or meta:
+            with st.expander("Reverse Image Search & Metadata"):
+                if rev:
+                    st.markdown("**Reverse Image Search (SerpAPI Google Lens)**")
+                    earliest = rev.get("earliest_appearance")
+                    if earliest:
+                        st.write(f"Earliest appearance : **{earliest.get('date', 'unknown')}**")
+                        st.write(f"Source              : {earliest.get('source_name', 'N/A')}")
+                        st.write(f"URL                 : {earliest.get('url', 'N/A')}")
+                        if earliest.get("title"):
+                            st.write(f"Page title          : {earliest['title']}")
+                    else:
+                        st.write("No dated appearance found.")
+                    appearances = rev.get("all_appearances", [])
+                    if appearances:
+                        domains = list({a.get("source_name") for a in appearances if a.get("source_name")})[:10]
+                        st.write(f"Total matches : {len(appearances)}")
+                        if domains:
+                            st.write("Matched domains : " + ", ".join(domains))
+                    st.write(f"Search confidence : {rev.get('search_confidence', 'N/A')}")
+
+                if meta:
+                    st.markdown("**Image EXIF Metadata**")
+                    st.write(f"Capture timestamp : {meta.get('datetime_original') or 'Stripped / N/A'}")
+                    st.write(f"Camera            : {meta.get('camera_make') or 'N/A'} {meta.get('camera_model') or ''}")
+                    lat, lon = meta.get("gps_lat"), meta.get("gps_lon")
+                    if lat and lon:
+                        st.write(f"GPS               : {lat}, {lon}")
+                    else:
+                        st.write("GPS               : N/A")
+
         if completed_stage == 4:
             p_value    = result.get("p_value")
             mahal      = result.get("mahalanobis_distance")
@@ -346,11 +461,22 @@ def _render_ui():
             if result.get("gemini_explanation"):
                 st.caption(result["gemini_explanation"])
 
+            # Gemini verdict — derive Streamlit level from label emoji
+            label  = result.get("gemini_label", "")
+            _LEVEL = {"✅": "success", "🔍": "info", "🚨": "error", "⚠️": "error", "❓": "warning"}
+            _fn    = next((fn for emoji, fn in _LEVEL.items() if label.startswith(emoji)), "info")
+            getattr(st, _fn)(label)
+
+            if result.get("gemini_explanation"):
+                st.caption(result["gemini_explanation"])
+
             col1, col2, col3, col4 = st.columns(4)
             col1.metric(
                 "Gemini confidence",
                 f"{result.get('gemini_confidence')}%" if result.get("gemini_confidence") is not None else "N/A",
+                f"{result.get('gemini_confidence')}%" if result.get("gemini_confidence") is not None else "N/A",
             )
+            col2.metric("Mahal. dist.", f"{mahal:.3f}" if mahal is not None else "N/A")
             col2.metric("Mahal. dist.", f"{mahal:.3f}" if mahal is not None else "N/A")
             col3.metric(
                 "Caption-image sim.",
@@ -360,10 +486,20 @@ def _render_ui():
 
             with st.expander("Detection stats"):
                 st.write("Embedding model      : DINOv2 ViT-B/14 (768-D)")
+                st.write("Embedding model      : DINOv2 ViT-B/14 (768-D)")
                 st.write(f"p-value              : {p_value:.6f}" if p_value is not None else "p-value: N/A")
                 st.write(f"PCA components       : {result.get('pca_components_used', 'N/A')}")
                 st.write(f"MAD outliers removed : {result.get('outliers_removed_by_mad', 'N/A')}")
                 st.write(f"Anomaly threshold (p): {result.get('anomaly_threshold', 0.05)}")
+
+            # ── Phase 5: Forensic Summary ─────────────────────────────────────
+            forensic_verdict   = result.get("forensic_verdict", "N/A")
+            forensic_reasoning = result.get("forensic_reasoning", "")
+            if forensic_verdict or forensic_reasoning:
+                st.subheader("Forensic Summary")
+                st.code(
+                    f"VERDICT: {forensic_verdict}\n\nREASONING: {forensic_reasoning}",
+                    language=None,
 
             # ── Phase 5: Forensic Summary ─────────────────────────────────────
             forensic_verdict   = result.get("forensic_verdict", "N/A")

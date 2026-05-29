@@ -46,8 +46,11 @@ def _build_dossier(
     image_metadata: dict,
     stats: dict,
     reverse_search: dict,
+<<<<<<< HEAD
     gemini_label: str = "",
     gemini_explanation: str = "",
+=======
+>>>>>>> db50590cf0fbec53148d22784c379e261240607a
 ) -> str:
     """Construct the evidence dossier text fed to the LLM."""
     mahal     = stats.get("mahalanobis_distance")
@@ -94,6 +97,7 @@ def _build_dossier(
         f"  Total web appearances : {len(appearances)}",
         f"  Matched domains (top 10): {', '.join(matched_domains) if matched_domains else 'None'}",
     ]
+<<<<<<< HEAD
 
     if gemini_label or gemini_explanation:
         lines += [
@@ -103,6 +107,8 @@ def _build_dossier(
             f"  Explanation : {gemini_explanation or 'N/A'}",
         ]
 
+=======
+>>>>>>> db50590cf0fbec53148d22784c379e261240607a
     return "\n".join(lines)
 
 
@@ -146,8 +152,11 @@ def generate_forensic_summary(
     image_metadata: dict,
     stats: dict,
     reverse_search: dict,
+<<<<<<< HEAD
     gemini_label: str = "",
     gemini_explanation: str = "",
+=======
+>>>>>>> db50590cf0fbec53148d22784c379e261240607a
 ) -> dict:
     """
     Asks Gemini to produce the summary, with an automatic retry 
@@ -159,7 +168,11 @@ def generate_forensic_summary(
     if not api_key:
         return _fallback
 
+<<<<<<< HEAD
     dossier = _build_dossier(caption, image_metadata, stats, reverse_search, gemini_label, gemini_explanation)
+=======
+    dossier = _build_dossier(caption, image_metadata, stats, reverse_search)
+>>>>>>> db50590cf0fbec53148d22784c379e261240607a
 
     try:
         from google import genai

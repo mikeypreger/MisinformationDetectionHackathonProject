@@ -48,4 +48,8 @@ def check_image_quality(pil_image: Image.Image) -> tuple[bool, str]:
     if _laplacian_variance(gray) < _BLUR_VAR_MIN:
         return False, _GUARDRAIL_MSG
 
+<<<<<<< HEAD
     return True, ""
+=======
+    return True, ""
+>>>>>>> db50590cf0fbec53148d22784c379e261240607a

@@ -5,8 +5,9 @@ import open_clip
 import piexif
 import json
 import requests
+import numpy as np
 from io import BytesIO
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 
 class Stage2WeakPriors:
     def __init__(self, model_name="ViT-B-32", pretrained="laion2b_s34b_b79k"):
@@ -16,11 +17,29 @@ class Stage2WeakPriors:
         self.model.to(self.device)
         self.tokenizer = open_clip.get_tokenizer(model_name)
 
-    def fetch_image_from_url(self, image_url):
+    def fetch_image_from_url(self, image_url, use_proxy=False):
+        """Fetches image with elite disguise headers and optional proxy tunneling."""
         try:
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'} 
-            response = requests.get(image_url, headers=headers, timeout=10)
+            headers = {
+                "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
+                "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8"
+            }
+            
+            proxies = {}
+            if use_proxy:
+                # Replace with your friend's Bright Data credentials
+                proxy_url = "http://YOUR_BRIGHTDATA_PROXY_CREDENTIALS@brd.superproxy.io:22225"
+                proxies = {"http": proxy_url, "https": proxy_url}
+
+            response = requests.get(image_url, headers=headers, proxies=proxies, timeout=15)
             response.raise_for_status() 
+            
+            # Guardrail 1: Is it actually an image?
+            content_type = response.headers.get('Content-Type', '')
+            if 'text/html' in content_type or not content_type.startswith('image/'):
+                print(f"❌ Guardrail Triggered: URL returned webpage/text, not an image ({content_type})")
+                return None
+                
             return response.content 
         except Exception as e:
             print(f"❌ Network Download Error: {e}") 
@@ -35,9 +54,19 @@ class Stage2WeakPriors:
         except Exception:
             return "Stripped or Invalid EXIF"
 
-    def calculate_clip_friction(self, image_bytes, caption_text):
+    def is_image_corrupted(self, image):
+        """Guardrail 2: Check for solid color blocks or zero-variance corruption."""
+        # Convert to grayscale and calculate variance of the pixel matrix
+        img_array = np.array(image.convert("L")) 
+        variance = np.var(img_array)
+        
+        # A variance < 5.0 indicates a nearly solid block of color
+        if variance < 5.0: 
+            return True
+        return False
+
+    def calculate_clip_friction(self, image, caption_text):
         try:
-            image = Image.open(BytesIO(image_bytes)).convert("RGB")
             image_tensor = self.preprocess(image).unsqueeze(0).to(self.device)
             text_tokens = self.tokenizer([caption_text]).to(self.device)
 
@@ -52,22 +81,52 @@ class Stage2WeakPriors:
                 
             return round(cosine_similarity, 4)
         except Exception as e:
-            return -1.0 
+            print(f"❌ CLIP Calculation Error: {e}")
+            return None 
 
     def process_evidence(self, image_url, caption_text, claimed_date=None):
         print(f"[Stage 2] Fetching image from URL...")
-        image_bytes = self.fetch_image_from_url(image_url)
+        # Note: Flip `use_proxy=True` once you plug in the Bright Data credentials!
+        image_bytes = self.fetch_image_from_url(image_url, use_proxy=False) 
         
         if not image_bytes:
             return {
-                "stage_status": "FAILED",
-                "error_message": "Could not download image from the provided URL",
+                "stage_status": "FAILED_NETWORK_OR_NOT_IMAGE",
+                "error_message": "Could not download a valid image file from the provided URL",
+                "metadata": None,
+                "clip_friction_score": None
+            }
+
+        try:
+            # Catch files that claim to be images but have corrupted byte structures
+            image = Image.open(BytesIO(image_bytes)).convert("RGB")
+        except UnidentifiedImageError:
+            return {
+                "stage_status": "FAILED_CORRUPT_BYTES",
+                "error_message": "Downloaded file is corrupted and cannot be opened as an image",
+                "metadata": None,
+                "clip_friction_score": None
+            }
+
+        # Apply the mathematical variance check
+        if self.is_image_corrupted(image):
+            return {
+                "stage_status": "FAILED_UNREADABLE_IMAGE",
+                "error_message": "Image failed variance check (pitch black, pure white, or corrupted)",
                 "metadata": None,
                 "clip_friction_score": None
             }
 
         exif_date = self.extract_exif_date(image_bytes)
-        clip_score = self.calculate_clip_friction(image_bytes, caption_text)
+        clip_score = self.calculate_clip_friction(image, caption_text)
+
+        if clip_score is None:
+            return {
+                "stage_status": "FAILED_CLIP_PROCESSING",
+                "error_message": "CLIP model failed to process the tensor.",
+                "metadata": None,
+                "clip_friction_score": None
+            }
 
         return {
             "stage_status": "COMPLETED", 
