@@ -162,7 +162,6 @@ def run_pipeline(
         p_value=stats.get("p_value"),
         mahalanobis_distance=stats.get("mahalanobis_distance"),
         caption_image_similarity=caption_image_similarity,
-        reverse_search=reverse_search,
     )
 
     # ── Phase 5: Forensic Summary ─────────────────────────────────────────────

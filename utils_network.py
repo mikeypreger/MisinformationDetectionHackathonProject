@@ -47,8 +47,4 @@ def robust_html_fetch(url: str, use_proxy: bool = False, timeout: int = 10) -> s
         except Exception:
             return None
 
-<<<<<<< HEAD
     return None
-=======
-    return None
->>>>>>> db50590cf0fbec53148d22784c379e261240607a
