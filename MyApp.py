@@ -22,10 +22,14 @@ from pipeline.embedder          import (
     embed_text, load_image_from_url,
 )
 from pipeline.anomaly_detector  import run_anomaly_detection
-from pipeline.verdict_generator import generate_verdict
 from pipeline.image_guardrail   import check_image_quality
 from pipeline.context_enricher  import run_reverse_image_search, extract_image_metadata
-from pipeline.forensic_summarizer import generate_forensic_summary
+from pipeline.council import (
+    run_council,
+    _SIM_CONTEXT_EMBEDDINGS,
+    _SIM_QUERY_EMBEDDING,
+    _SIM_CAPTION_SIM,
+)
 
 if DEV_MODE:
     import streamlit as st
@@ -35,6 +39,7 @@ def run_pipeline(
     stage: int = PIPELINE_STAGE,
     embedding_model: str = "dino",
     use_gmm: bool = False,
+    simulation_mode: bool = False,
 ) -> dict:
     """Full pipeline — DINOv2 ViT-B/14 for anomaly detection, CLIP for caption similarity."""
 
@@ -134,19 +139,24 @@ def run_pipeline(
 
     import numpy as np
 
-    context_embeddings = embed_images(context_pil_images, model=embedding_model)
-    query_embedding    = embed_single_image(query_pil,    model=embedding_model)
+    if simulation_mode:
+        context_embeddings       = _SIM_CONTEXT_EMBEDDINGS
+        query_embedding          = _SIM_QUERY_EMBEDDING
+        caption_image_similarity = _SIM_CAPTION_SIM
+    else:
+        context_embeddings = embed_images(context_pil_images, model=embedding_model)
+        query_embedding    = embed_single_image(query_pil,    model=embedding_model)
 
-    # Caption-image similarity: always CLIP (DINOv2 has no text encoder).
-    caption_image_similarity = None
-    if caption.strip():
-        try:
-            load_clip_model()
-            clip_query = embed_single_image(query_pil, model="clip")
-            cap_emb = embed_text(caption)
-            caption_image_similarity = round(float(np.dot(clip_query, cap_emb)), 4)
-        except Exception as e:
-            print(f"[pipeline] caption-image similarity failed: {e}")
+        # Caption-image similarity: always CLIP (DINOv2 has no text encoder).
+        caption_image_similarity = None
+        if caption.strip():
+            try:
+                load_clip_model()
+                clip_query = embed_single_image(query_pil, model="clip")
+                cap_emb = embed_text(caption)
+                caption_image_similarity = round(float(np.dot(clip_query, cap_emb)), 4)
+            except Exception as e:
+                print(f"[pipeline] caption-image similarity failed: {e}")
 
     stats = run_anomaly_detection(
         context_embeddings,
@@ -154,26 +164,14 @@ def run_pipeline(
         use_gmm=use_gmm,
     )
 
-    # Gemini multimodal verdict (existing flow — unchanged)
-    _, verdict_label, verdict_explanation, confidence = generate_verdict(
+    # ── Phase 5: Council veto engine ─────────────────────────────────────────
+    council_result = run_council(
         caption=caption,
         image_url=image_url,
-        is_anomaly=stats.get("is_anomaly"),
-        p_value=stats.get("p_value"),
-        mahalanobis_distance=stats.get("mahalanobis_distance"),
-        caption_image_similarity=caption_image_similarity,
-    )
-
-    # ── Phase 5: Forensic Summary ─────────────────────────────────────────────
-    forensic_stats = {
-        **stats,
-        "context_images_embedded": int(context_embeddings.shape[0]),
-    }
-    forensic = generate_forensic_summary(
-        caption=caption,
-        image_metadata=image_metadata,
-        stats=forensic_stats,
+        stats=stats,
         reverse_search=reverse_search,
+        caption_image_similarity=caption_image_similarity,
+        simulation_mode=simulation_mode,
     )
 
     return {
@@ -188,16 +186,9 @@ def run_pipeline(
         "caption_image_similarity": caption_image_similarity,
         "embedding_model": embedding_model,
         "pipeline_stage": 4,
-        # Phase 2.5
         "reverse_image_search": reverse_search,
         "image_metadata": image_metadata,
-        # Existing Gemini verdict
-        "gemini_label": verdict_label,
-        "gemini_confidence": confidence,
-        "gemini_explanation": verdict_explanation,
-        # Phase 5
-        "forensic_verdict": forensic.get("verdict", "N/A"),
-        "forensic_reasoning": forensic.get("reasoning", ""),
+        **council_result,
         **stats,
     }
 
@@ -209,6 +200,14 @@ def _render_ui():
     st.set_page_config(page_title="Miss Information", page_icon="🔍", layout="centered")
     st.title("🔍 Miss Information")
     st.caption("Misinformation detection powered by statistical forensics")
+
+    with st.sidebar:
+        st.header("Settings")
+        simulation_mode = st.toggle(
+            "Simulation mode",
+            value=False,
+            help="Skip all API/network calls and return synthetic results (for demos and testing).",
+        )
 
     stage = st.selectbox(
         "Pipeline stage",
@@ -244,7 +243,7 @@ def _render_ui():
 
         try:
             with st.spinner(spinner_msg):
-                result = run_pipeline(url_input.strip(), stage=stage)
+                result = run_pipeline(url_input.strip(), stage=stage, simulation_mode=simulation_mode)
         finally:
             st.session_state.analyzing = False
 
@@ -374,6 +373,21 @@ def _render_ui():
                     f"VERDICT: {forensic_verdict}\n\nREASONING: {forensic_reasoning}",
                     language=None,
                 )
+
+            # ── Council breakdown ─────────────────────────────────────────────
+            council_scores = result.get("council_scores", {})
+            if council_scores:
+                st.subheader("Council Analysis")
+                if result.get("council_veto_triggered"):
+                    veto_who = (result.get("council_veto_persona") or "unknown").replace("_", " ").title()
+                    st.error(f"Hard veto triggered by **{veto_who}**")
+                cc1, cc2, cc3 = st.columns(3)
+                cc1.metric("Statistical Cynic", f"{council_scores.get('statistical_cynic', 'N/A')}/100")
+                cc2.metric("Historian",         f"{council_scores.get('historian',         'N/A')}/100")
+                cc3.metric("Linguist",          f"{council_scores.get('linguist',           'N/A')}/100")
+                mean = result.get("council_mean_score")
+                if mean is not None:
+                    st.caption(f"Council mean score: **{mean:.1f} / 100**")
 
         with st.expander("Raw JSON payload"):
             st.json(result)
