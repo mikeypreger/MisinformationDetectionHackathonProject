@@ -48,24 +48,45 @@ export default function UseCases() {
           subtitle="miss information is built for anyone who needs to move beyond surface-level image sharing and examine what is really being communicated."
         />
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {USE_CASES.map((useCase) => (
-            <div
-              key={useCase.title}
-              className="group border border-white/[0.07] rounded-xl p-6 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.11] transition-all duration-300 cursor-default"
-            >
-              <span
-                className="text-[18px] text-pale-blue/30 group-hover:text-pale-blue/50 transition-colors duration-300 mb-4 block"
-                aria-hidden="true"
+        <div className="relative">
+          {/* vertical center line */}
+          <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/10 -translate-x-1/2" />
+
+          {USE_CASES.map((useCase, index) => {
+            const isLeft = index % 2 === 0;
+            return (
+              <div
+                key={useCase.title}
+                className={`group flex items-center mb-10 last:mb-0 ${isLeft ? 'flex-row' : 'flex-row-reverse'}`}
               >
-                {useCase.symbol}
-              </span>
-              <h3 className="text-[13px] font-medium text-white mb-2">{useCase.title}</h3>
-              <p className="text-[13px] font-light text-blue-muted/60 leading-relaxed">
-                {useCase.description}
-              </p>
-            </div>
-          ))}
+                {/* content */}
+                <div
+                  className={`w-[45%] cursor-default transition-transform duration-300 ease-out group-hover:scale-[1.04] ${isLeft ? 'text-right pr-8' : 'text-left pl-8'}`}
+                >
+                  <span
+                    className="text-[18px] text-pale-blue/30 group-hover:text-pale-blue/50 transition-colors duration-300 mb-2 block"
+                    aria-hidden="true"
+                  >
+                    {useCase.symbol}
+                  </span>
+                  <h3 className="text-[13px] font-medium text-white mb-1 leading-snug">
+                    {useCase.title}
+                  </h3>
+                  <p className="text-[13px] font-light text-blue-muted/60 leading-relaxed">
+                    {useCase.description}
+                  </p>
+                </div>
+
+                {/* dot on the line */}
+                <div className="w-[10%] flex justify-center z-10">
+                  <div className="w-2.5 h-2.5 rounded-full border border-white/20 bg-white/[0.06] group-hover:bg-pale-blue/30 group-hover:border-pale-blue/40 transition-all duration-300" />
+                </div>
+
+                {/* empty side */}
+                <div className="w-[45%]" />
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
