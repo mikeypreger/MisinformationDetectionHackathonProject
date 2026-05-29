@@ -165,28 +165,30 @@ export default function ResultCard({ result, url, onReset }) {
                 </ul>
               </div>
 
-              {/* Next steps */}
-              <div className="border-t border-white/[0.06] pt-5">
-                <p className="text-[9px] font-medium tracking-[0.14em] uppercase text-blue-muted/40 mb-3">
-                  Suggested next steps
-                </p>
-                <ol className="flex flex-col gap-2.5" role="list">
-                  {result.nextSteps.map((step, i) => (
-                    <li
-                      key={step}
-                      className="flex items-center gap-3 text-[13px] font-light text-blue-muted/75"
-                    >
-                      <span
-                        className="flex-shrink-0 w-5 h-5 rounded-full border border-white/[0.1] flex items-center justify-center text-[9px] text-blue-muted/50 tabular-nums font-medium"
-                        aria-hidden="true"
+              {/* Top reasons */}
+              {result.topReasons && result.topReasons.length > 0 && (
+                <div className="border-t border-white/[0.06] pt-5">
+                  <p className="text-[9px] font-medium tracking-[0.14em] uppercase text-blue-muted/40 mb-3">
+                    Top reasons
+                  </p>
+                  <ol className="flex flex-col gap-2.5" role="list">
+                    {result.topReasons.map((reason, i) => (
+                      <li
+                        key={i}
+                        className="flex items-start gap-3 text-[13px] font-light text-blue-muted/75"
                       >
-                        {i + 1}
-                      </span>
-                      {step}
-                    </li>
-                  ))}
-                </ol>
-              </div>
+                        <span
+                          className="flex-shrink-0 w-5 h-5 rounded-full border border-white/[0.1] flex items-center justify-center text-[9px] text-blue-muted/50 tabular-nums font-medium mt-0.5"
+                          aria-hidden="true"
+                        >
+                          {i + 1}
+                        </span>
+                        {reason}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
 
               {/* Footer */}
               <div className="border-t border-white/[0.06] pt-4 flex items-center justify-between gap-3 flex-wrap">

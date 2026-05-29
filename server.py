@@ -47,14 +47,13 @@ You receive structured JSON output from a forensic analysis pipeline. Your job i
 produce concise, accurate copy for the results panel shown to the end user.
 
 Rules:
-- verdict:   ONE sentence (≤ 20 words), plain English, no emoji, present tense
-- analysis:  2–3 sentences explaining what the evidence shows and why this risk level was assigned
-- imageAlt:  brief accessibility label for the photograph (start with "Photo showing …")
-- signals:   3–5 short strings (≤ 12 words each) citing concrete evidence from the data
-- nextSteps: 2–3 actionable strings the reader should do next (start each with a verb)
+- verdict:  ONE sentence (≤ 20 words), plain English, no emoji, present tense
+- analysis: 2–3 sentences explaining what the evidence shows and why this risk level was assigned
+- imageAlt: brief accessibility label for the photograph (start with "Photo showing …")
+- signals:  3–5 short strings (≤ 12 words each) citing concrete evidence from the data
 
 Return ONLY valid JSON, no markdown fences:
-{"verdict": str, "analysis": str, "imageAlt": str, "signals": [str], "nextSteps": [str]}
+{"verdict": str, "analysis": str, "imageAlt": str, "signals": [str]}
 """
 
 
@@ -127,11 +126,10 @@ def _context_risk(verdict: str, confidence: int) -> str:
 
 def _fallback_copy(result: dict) -> dict:
     return {
-        "verdict":   result.get("gemini_explanation") or f"Verdict: {result.get('forensic_verdict', 'N/A')}",
-        "analysis":  result.get("forensic_reasoning") or "No detailed reasoning available.",
-        "imageAlt":  "Image extracted from social media post",
-        "signals":   _fallback_signals(result),
-        "nextSteps": _fallback_next_steps(result),
+        "verdict":  result.get("gemini_explanation") or f"Verdict: {result.get('forensic_verdict', 'N/A')}",
+        "analysis": result.get("forensic_reasoning") or "No detailed reasoning available.",
+        "imageAlt": "Image extracted from social media post",
+        "signals":  _fallback_signals(result),
     }
 
 
@@ -154,22 +152,6 @@ def _fallback_signals(result: dict) -> list:
         signals.append(f"Low caption–image alignment ({sim:.2f})")
     return signals[:5] or ["No specific signals detected"]
 
-
-def _fallback_next_steps(result: dict) -> list:
-    verdict = result.get("forensic_verdict", "")
-    if "MISINFORMATION" in verdict:
-        return [
-            "Verify the claim with a trusted news outlet",
-            "Check the original publication date of the image",
-            "Report to the platform if misinformation is confirmed",
-        ]
-    if verdict == "LIKELY TRUE":
-        return ["Cross-reference with additional sources to confirm"]
-    return [
-        "Check reverse image search results for earlier appearances",
-        "Verify that the caption accurately describes the image content",
-        "Look for the original source of the photograph",
-    ]
 
 
 # ── Request model ─────────────────────────────────────────────────────────────
@@ -210,7 +192,7 @@ def analyze(req: AnalyzeRequest):
         "verdict":     copy.get("verdict", ""),
         "analysis":    copy.get("analysis", ""),
         "signals":     copy.get("signals", []),
-        "nextSteps":   copy.get("nextSteps", []),
+        "topReasons":  result.get("top_reasons", []),
         "metadata": {
             "platform":        (result.get("platform") or "Unknown").replace("_", " ").title(),
             "analysisTime":    f"{elapsed}s",
