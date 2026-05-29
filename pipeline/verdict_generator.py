@@ -11,32 +11,58 @@ _client = None
 
 _SYSTEM = """\
 You are a misinformation detection expert reviewing a social media post.
-You are given the post image, its caption, and automated detection statistics.
+You are given the post image, its caption, automated detection statistics, and reverse image search results.
 
-Classify the post using EXACTLY ONE of these labels:
+STEP 1 — Choose EXACTLY ONE label:
 - "✅ LIKELY REAL" — image authentically represents what the caption claims
 - "🔍 AMBIGUOUS" — signals are mixed; cannot determine with confidence
 - "🚨 POSSIBLE CHEAPFAKE" — image is used out of context or caption is misleading
 - "⚠️ VISUAL ANOMALY" — image appears digitally manipulated or structurally inconsistent
 - "❓ UNKNOWN" — insufficient information to classify
 
-Key reasoning rules:
-- Official team/organization announcement graphics (e.g. player signings, award posts) naturally
-  score LOW on caption-image similarity (< 0.23 CLIP score). Do NOT flag as cheapfake solely on
-  this score. Ask: does the image CONTENT match the CLAIM in the caption?
-- caption_image_similarity is a CLIP cosine score. Real news photos score 0.25-0.40; styled
-  graphics and team announcement visuals score 0.15-0.22 even when perfectly authentic.
-- Only flag POSSIBLE CHEAPFAKE if the image visibly shows something different from what the
-  caption describes (wrong person, wrong location, wrong event, wrong time period).
-- p_value close to 1.0 means the image fits the visual context cluster — not suspicious alone.
+Label reasoning rules:
+- Official team/organization announcement graphics (player signings, award posts) naturally score
+  LOW on caption_image_similarity (< 0.23). Do NOT flag as cheapfake on that score alone.
+  Ask: does the image CONTENT match the CLAIM? If yes → LIKELY REAL.
+- Only flag POSSIBLE CHEAPFAKE if you can name a SPECIFIC, CONCRETE mismatch: wrong person,
+  wrong country/location, wrong event, wrong time period.
+- p_value close to 1.0 means the image visually fits the topic — not suspicious alone.
 - Use VISUAL ANOMALY only when the image appears digitally manipulated.
+- TEMPORAL RECYCLING RULE: If reverse image search shows the image's earliest known date
+  predates the caption's claimed event by 1 or more years, flag as 🚨 POSSIBLE CHEAPFAKE
+  regardless of the anomaly p_value. A temporally recycled image is a cheapfake even when
+  it is statistically "normal" for the current topic. Name the original source and date in
+  your explanation.
 
-Also provide:
-- confidence: integer 0-100 expressing how certain you are of your classification
-- explanation: one sentence explaining your reasoning
+STEP 2 — Set confidence using the statistical signals (not just your visual certainty).
+The confidence integer MUST reflect how well the algorithmic evidence supports your label:
+
+  For ✅ LIKELY REAL:
+    80–95 → image clearly matches caption AND caption_image_similarity ≥ 0.23 (CLIP confirms)
+             AND reverse search earliest date is consistent with the claimed timeframe
+    65–79 → image matches caption BUT caption_image_similarity < 0.23 (CLIP is uncertain;
+             acceptable for stylized graphics, but the stat gap reduces overall confidence)
+
+  For 🚨 POSSIBLE CHEAPFAKE:
+    80–95 → earliest_appearance date clearly predates the claimed event by 1+ year AND
+             you can name the original context (e.g. source, title) OR caption_image_similarity < 0.23
+    65–79 → reverse_search date mismatch is suspicious but uncertain, or stats are mixed
+
+  For 🔍 AMBIGUOUS:
+    45–64 → by definition unclear; use lower end when stats conflict more
+
+  For ⚠️ VISUAL ANOMALY:
+    70–90 → when is_anomaly=True (p_value < 0.05) and visual confirms manipulation
+
+  For ❓ UNKNOWN:
+    0–44  → insufficient information
+
+STEP 3 — Write a one-sentence explanation naming the specific evidence (what you see in the
+image, which stat is the deciding factor, what the mismatch is). If flagging as cheapfake due
+to temporal recycling, name the original source and its date.
 
 Return JSON only:
-{"label": "<one of the 5 labels above>", "confidence": <0-100>, "explanation": "<one sentence>"}
+{"label": "<one of the 5 labels>", "confidence": <integer 0-100>, "explanation": "<one sentence>"}
 """
 
 _LEVEL_MAP = {
@@ -72,12 +98,16 @@ def generate_verdict(
     p_value: float | None,
     mahalanobis_distance: float | None,
     caption_image_similarity: float | None,
+    reverse_search: dict | None = None, 
 ) -> tuple[str, str, str, int]:
     """
     Returns (streamlit_level, label, explanation, confidence 0-100).
     Falls back to threshold logic if Gemini is unavailable.
     """
     global _client
+    if not image_url:
+        return _fallback_verdict(is_anomaly, caption_image_similarity)
+
     api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
         return _fallback_verdict(is_anomaly, caption_image_similarity)
@@ -104,6 +134,19 @@ def generate_verdict(
             f"- mahalanobis_distance: {mahalanobis_distance}\n"
             f"- caption_image_similarity (CLIP cosine): {caption_image_similarity}\n"
         )
+
+        if reverse_search:
+            earliest = reverse_search.get("earliest_appearance") or {}
+            all_appearances = reverse_search.get("all_appearances", [])
+            stats_text += (
+                f"\nReverse image search:\n"
+                f"- earliest known date: {earliest.get('date', 'Not found')}\n"
+                f"- earliest source: {earliest.get('source_name', 'N/A')}\n"
+                f"- earliest URL: {earliest.get('url', 'N/A')}\n"
+                f"- earliest page title: {earliest.get('title', 'N/A')}\n"
+                f"- total web appearances: {len(all_appearances)}\n"
+                f"- search confidence: {reverse_search.get('search_confidence', 'N/A')}\n"
+            )
 
         contents = [
             genai_types.Part(

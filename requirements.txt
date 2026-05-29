@@ -10,3 +10,5 @@ Pillow
 numpy
 scipy
 scikit-learn
+piexif
+beautifulsoup4
