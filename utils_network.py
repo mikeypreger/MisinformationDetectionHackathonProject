@@ -47,12 +47,24 @@ def robust_html_fetch(page_url: str, use_proxy: bool = False) -> str | None:
     """Safely fetches HTML text for parsing og:images and meta tags."""
     if not page_url:
         return None
-        
+
     try:
         session = _get_robust_session(use_proxy)
-        resp = session.get(page_url, timeout=15)
+        resp = session.get(page_url, timeout=15, allow_redirects=True)
         resp.raise_for_status()
+
+        content_type = resp.headers.get("Content-Type", "")
+        if "text/html" not in content_type and "application/xhtml" not in content_type:
+            print(f"⚠️  HTML Fetch: unexpected Content-Type '{content_type}' for {page_url} — skipping")
+            return None
+
         return resp.text
+    except requests.exceptions.HTTPError as e:
+        print(f"❌ HTML Fetch HTTP {e.response.status_code} for {page_url}")
+        return None
+    except requests.exceptions.Timeout:
+        print(f"❌ HTML Fetch Timeout for {page_url}")
+        return None
     except Exception as e:
         print(f"❌ HTML Fetch Error for {page_url}: {e}")
         return None

@@ -209,10 +209,54 @@ def get_page_context(url: str) -> dict:
         return fallback
 
 
+def _extract_twitter_image(tweet_url: str) -> str | None:
+    """Extract first image URL from a Twitter/X tweet via the vxtwitter public API."""
+    m = re.search(r'/([^/?#]+)/status/(\d+)', tweet_url)
+    if not m:
+        return None
+    username, tweet_id = m.group(1), m.group(2)
+    try:
+        resp = requests.get(
+            f"https://api.vxtwitter.com/{username}/status/{tweet_id}",
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        urls = resp.json().get("mediaURLs", [])
+        return urls[0] if urls else None
+    except Exception as e:
+        print(f"❌ Twitter image extraction error: {e}")
+        return None
+
+
+def _is_direct_image_url(url: str) -> bool:
+    """Returns True if the URL almost certainly points to an image file, not a web page."""
+    parsed = urlparse(url)
+    path = parsed.path.lower()
+    image_extensions = (".jpg", ".jpeg", ".png", ".webp", ".gif")
+
+    if path.endswith(image_extensions):
+        return True
+
+    query = parsed.query.lower()
+    if any(f"format={ext.lstrip('.')}" in query for ext in image_extensions):
+        return True
+
+    image_cdns = ("pbs.twimg.com", "i.redd.it", "i.imgur.com", "i.ibb.co")
+    netloc = parsed.netloc.lower()
+    if any(netloc == cdn or netloc.endswith("." + cdn) for cdn in image_cdns):
+        return True
+
+    return False
+
+
 def extract_image_from_post(post_url: str) -> str | None:
     """Fetches a web page and extracts the main image URL from its Open Graph / Twitter meta tags."""
+    netloc = urlparse(post_url).netloc.lower()
+    if "x.com" in netloc or "twitter.com" in netloc:
+        return _extract_twitter_image(post_url)
+
     try:
-        # 🚨 Route through our robust fetcher to bypass blocks
         html_text = robust_html_fetch(post_url, use_proxy=False)
         if not html_text:
             return None
@@ -220,31 +264,28 @@ def extract_image_from_post(post_url: str) -> str | None:
         soup = BeautifulSoup(html_text, "html.parser")
 
         meta_checks = [
-            ("property", "og:image"),             
-            ("name",     "twitter:image"),         
-            ("property", "og:image:secure_url"),   
+            ("property", "og:image"),
+            ("name",     "twitter:image"),
+            ("property", "og:image:secure_url"),
         ]
-        for attr, val in meta_checks:                          
-            tag = soup.find("meta", attrs={attr: val})         
-            if tag and tag.get("content"):                     
-                return tag["content"]                          
+        for attr, val in meta_checks:
+            tag = soup.find("meta", attrs={attr: val})
+            if tag and tag.get("content"):
+                return tag["content"]
 
     except Exception:
-        pass  
+        pass
 
-    return None  
+    return None
 
 
 def run_stage1(input_url: str) -> dict:
     """Main entry point for Stage 1. Accepts either a direct image URL or a post URL."""
-    image_extensions = (".jpg", ".jpeg", ".png", ".webp", ".gif")
-    url_path = urlparse(input_url).path.lower()  
-
-    if url_path.endswith(image_extensions):      
-        image_url = input_url                    
-        mode = "direct"                          
-    else:                                        
-        mode = "post"                            
+    if _is_direct_image_url(input_url):
+        image_url = input_url
+        mode = "direct"
+    else:
+        mode = "post"
         image_url = extract_image_from_post(input_url)  
 
         if image_url is None:                    
@@ -315,11 +356,9 @@ def run_stage1(input_url: str) -> dict:
 if __name__ == "__main__":
     url = input("Paste image or post URL: ")  
 
-    image_extensions = (".jpg", ".jpeg", ".png", ".webp", ".gif")
-    url_path = urlparse(url).path.lower()        
-    if url_path.endswith(image_extensions):      
+    if _is_direct_image_url(url):
         print("Direct image URL detected")
-    else:                                        
+    else:
         print("Post URL detected — extracting image...")
 
     result = run_stage1(url)  
