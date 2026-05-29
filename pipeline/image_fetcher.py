@@ -96,10 +96,15 @@ def _links_from_serp(records: list) -> list[str]:
     return list(dict.fromkeys(links))  # deduplicate
 
 
+_PAGE_DELAY_SECS = 5  # rate-limit between consecutive Google SERP calls via Bright Data
+
+
 def _fetch_one_query(query: str, pages: int = 2) -> list[str]:
     """Fetch SERP article links for a single query. Suitable for parallel execution."""
     all_links: list[str] = []
     for page in range(pages):
+        if page > 0:
+            time.sleep(_PAGE_DELAY_SECS)
         start = page * 10
         url = f"https://www.google.com/search?q={quote_plus(query)}&start={start}&gl=US&hl=en"
         sid = _trigger(url)

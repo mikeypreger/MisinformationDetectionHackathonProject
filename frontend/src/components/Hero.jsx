@@ -9,7 +9,7 @@ function isValidUrl(str) {
   }
 }
 
-export default function Hero({ onAnalyze, analysisState, onReset }) {
+export default function Hero({ onAnalyze, analysisState, analysisError, onReset }) {
   const [inputUrl, setInputUrl] = useState('');
   const [inputError, setInputError] = useState('');
   const [focused, setFocused] = useState(false);
@@ -163,7 +163,7 @@ export default function Hero({ onAnalyze, analysisState, onReset }) {
                 className="mt-3 text-[13px] text-red-400/85 text-center flex items-center justify-center gap-1.5"
               >
                 <AlertIcon />
-                Analysis failed. Please check the URL and try again.
+                {analysisError || 'Analysis failed. Please check the URL and try again.'}
               </p>
             )}
 
@@ -188,7 +188,7 @@ export default function Hero({ onAnalyze, analysisState, onReset }) {
             {/* Hint text */}
             {!inputError && !isLoading && !isError && (
               <p id="url-hint" className="mt-3 text-[12px] text-blue-muted/45 text-center">
-                Supports public posts containing images.&nbsp; Backend analysis coming soon.
+                Supports public posts from Instagram, Twitter, TikTok, Facebook, and Reddit.
               </p>
             )}
           </form>

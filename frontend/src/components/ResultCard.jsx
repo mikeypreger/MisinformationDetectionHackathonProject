@@ -214,7 +214,7 @@ export default function ResultCard({ result, url, onReset }) {
 
         {/* Disclaimer */}
         <p className="mt-4 text-center text-[11px] font-light text-blue-muted/30">
-          Mocked result for demonstration. Backend analysis pipeline not yet connected.
+          Results are probabilistic, not definitive. Always cross-reference with trusted sources.
         </p>
       </div>
     </section>

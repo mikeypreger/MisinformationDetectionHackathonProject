@@ -135,8 +135,6 @@ def run_pipeline(
         }
 
     # ── Stage 4: Full pipeline — embed → anomaly + caption score ─────────────
-    context_pil_images = download_images_parallel(context_urls)
-
     import numpy as np
 
     if simulation_mode:
@@ -144,6 +142,7 @@ def run_pipeline(
         query_embedding          = _SIM_QUERY_EMBEDDING
         caption_image_similarity = _SIM_CAPTION_SIM
     else:
+        context_pil_images = download_images_parallel(context_urls)
         context_embeddings = embed_images(context_pil_images, model=embedding_model)
         query_embedding    = embed_single_image(query_pil,    model=embedding_model)
 

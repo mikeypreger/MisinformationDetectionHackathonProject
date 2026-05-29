@@ -13,11 +13,11 @@ _LAPLACIAN_KERNEL = np.array([[0, 1, 0], [1, -4, 1], [0, 1, 0]], dtype=np.float3
 
 _GUARDRAIL_MSG = "N/A — Visual asset contains insufficient data for forensic parsing."
 
-# Thresholds
-_BRIGHTNESS_MIN  = 10    # mean pixel value below this → all-black
-_BRIGHTNESS_MAX  = 245   # mean pixel value above this → all-white / blown-out
-_MONO_STD_MAX    = 8     # std-dev below this → monochrome / near-solid-color
-_BLUR_VAR_MIN    = 50    # Laplacian variance below this → severely blurry
+# Thresholds — intentionally permissive; only block truly unusable images
+_BRIGHTNESS_MIN  = 5     # mean pixel value below this → all-black
+_BRIGHTNESS_MAX  = 250   # mean pixel value above this → all-white / blown-out
+_MONO_STD_MAX    = 3     # std-dev below this → near-solid-color (logos, blank frames)
+_BLUR_VAR_MIN    = 10    # Laplacian variance below this → completely out-of-focus
 
 
 def _laplacian_variance(gray_array: np.ndarray) -> float:
