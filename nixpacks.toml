@@ -1,2 +1,8 @@
 [phases.setup]
 nixPkgs = ["nodejs_20"]
+
+[phases.build]
+cmds = [
+    "python3 -m spacy download en_core_web_sm",
+    "cd frontend && npm ci && npm run build"
+]
