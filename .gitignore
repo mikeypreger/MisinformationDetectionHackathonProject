@@ -19,8 +19,11 @@ gemini_query_cache.json
 *.json.bak
 
 # Test/API response caches (regenerated on demand)
-tests/cached_responses/
-astrodetect/tests/cached_responses/
+pipeline/tests/cached_responses/
+
+# Frontend build output (run `npm run build` to regenerate)
+frontend/dist/
+frontend/node_modules/
 
 # IDE
 .vscode/
@@ -30,5 +33,4 @@ astrodetect/tests/cached_responses/
 # OS
 .DS_Store
 Thumbs.db
-node_modules/
 __pycache__/

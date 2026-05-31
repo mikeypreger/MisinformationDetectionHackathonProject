@@ -1,45 +1,61 @@
-# ─────────────────────────────────────────────
-# stage1/search.py
-#
-# Purpose: Send an image to SerpApi (Google Lens)
-# and get back a list of all known web appearances.
-# ─────────────────────────────────────────────
+"""
+pipeline/context_enricher.py
 
-import sys
+Reverse image search (SerpAPI Google Lens) + EXIF metadata extraction.
+Public API used by MyApp.py:
+    run_reverse_image_search(image_url) -> dict
+    extract_image_metadata(image_url)   -> dict
+"""
+
+import requests
+import json
+import os
+import re
 from pathlib import Path
-
-# Ensure project root is on sys.path so root-level modules (utils_network, etc.) are importable
-# regardless of where Python is launched from.
-current_file = Path(__file__).resolve()
-_PROJECT_ROOT = str(current_file.parent.parent)  # pipeline/ -> project root
-if _PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, _PROJECT_ROOT)
-
-import requests                                    
-import json                                        
-import os                                          
-import re                                          
-from concurrent.futures import ThreadPoolExecutor  
-from urllib.parse import urlparse                  
-from bs4 import BeautifulSoup                      
+from concurrent.futures import ThreadPoolExecutor
+from urllib.parse import urlparse
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
-# Now Python knows where to find this!
-from utils_network import robust_html_fetch        
+from .utils_network import robust_html_fetch
 
-# Load the .env file so SERPAPI_KEY is available as an env variable.
 load_dotenv()
 
-# Read the API key from the environment.
 SERPAPI_KEY = os.getenv("SERPAPI_KEY")
 
-# Absolute path to the cache directory, anchored to this file's location.
-_CACHE_DIR = Path(__file__).resolve().parent.parent / "tests" / "cached_responses"
+# Cache directory for dev/test use (auto-created on first write).
+_CACHE_DIR = Path(__file__).resolve().parent / "tests" / "cached_responses"
 
 # Compiled once at module load — used by extract_date_from_url on every call.
-_DATE_SLASH   = re.compile(r'/(\d{4})/(\d{2})/(\d{2})/')       # /2019/03/14/
-_DATE_COMPACT = re.compile(r'/(\d{4})(\d{2})(\d{2})/')          # /20190314/
-_DATE_PARAM   = re.compile(r'[?&]date=(\d{4}-?\d{2}-?\d{2})')  # ?date=2019-03-14
+_DATE_SLASH   = re.compile(r'/(\d{4})/(\d{1,2})/(\d{1,2})(?:/|$)')  # /2019/03/14/ or /2016/3/25
+_DATE_ISO_SEG = re.compile(r'/(\d{4})-(\d{2})-(\d{2})/')             # /2016-03-29/
+_DATE_COMPACT = re.compile(r'/(\d{4})(\d{2})(\d{2})[-/]')            # /20190314/ or /20190314-
+_DATE_PARAM   = re.compile(r'[?&]date=(\d{4}-?\d{2}-?\d{2})')        # ?date=2019-03-14
+
+_MONTH_MAP = {
+    "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
+    "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
+}
+
+
+def _parse_api_date(raw: str) -> str | None:
+    """Normalize SerpAPI date strings to YYYY-MM-DD. Returns None if unparseable."""
+    if not raw:
+        return None
+    raw = raw.strip()
+    if re.match(r'^\d{4}-\d{2}-\d{2}$', raw):
+        return raw if "1990-01-01" <= raw <= "2030-12-31" else None
+    m = re.match(r'([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})', raw)
+    if m:
+        mon = _MONTH_MAP.get(m.group(1).lower()[:3])
+        if mon:
+            candidate = f"{m.group(3)}-{mon:02d}-{int(m.group(2)):02d}"
+            return candidate if "1990-01-01" <= candidate <= "2030-12-31" else None
+    m = re.match(r'(\d{4}-\d{2}-\d{2})', raw)
+    if m:
+        candidate = m.group(1)
+        return candidate if "1990-01-01" <= candidate <= "2030-12-31" else None
+    return None
 
 
 def search_image_by_url(image_url: str) -> dict:
@@ -82,23 +98,30 @@ def load_response(filename: str) -> dict:
 
 
 def parse_appearances(raw_results: dict) -> list[dict]:
-    """Extracts a clean, uniform list of web appearances from a raw SerpApi response."""
+    """Extracts up to 10 appearances from a raw SerpAPI Google Lens response.
+
+    Priority: exact_matches (same image elsewhere) → visual_matches (visually similar).
+    exact_matches are preferred because they confirm the identical pixel data appeared
+    on another page; visual_matches are used as fallback when Google finds no exact hits.
+    The consensus filter in find_earliest handles visual-match noise.
+    """
     appearances = []
+    exact = raw_results.get("exact_matches", [])
+    source_list = exact[:10] if exact else raw_results.get("visual_matches", [])[:10]
+    match_type = "exact_matches" if exact else "visual_matches"
 
-    for match_type in ("exact_matches", "visual_matches"):
-        for item in raw_results.get(match_type, []):
-            url = item.get("link", "")
-            if not url:
-                continue
-            appearances.append({
-                "url": url,
-                "title": item.get("title", ""),
-                "source_name": item.get("source", ""),
-                "match_type": match_type,
-                "date": None,
-                "context": None,
-            })
-
+    for item in source_list:
+        url = item.get("link", "")
+        if not url:
+            continue
+        appearances.append({
+            "url":         url,
+            "title":       item.get("title", ""),
+            "source_name": item.get("source", ""),
+            "match_type":  match_type,
+            "date":        _parse_api_date(item.get("date", "")),
+            "context":     None,
+        })
     return appearances
 
 
@@ -108,7 +131,12 @@ def extract_date_from_url(url: str) -> str | None:
 
     m = _DATE_SLASH.search(url)
     if m:
-        candidate = f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
+        candidate = f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
+
+    if candidate is None:
+        m = _DATE_ISO_SEG.search(url)
+        if m:
+            candidate = f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
 
     if candidate is None:
         m = _DATE_COMPACT.search(url)
@@ -118,7 +146,7 @@ def extract_date_from_url(url: str) -> str | None:
     if candidate is None:
         m = _DATE_PARAM.search(url)
         if m:
-            raw = m.group(1).replace("-", "")   # normalize to YYYYMMDD
+            raw = m.group(1).replace("-", "")
             candidate = f"{raw[:4]}-{raw[4:6]}-{raw[6:8]}"
 
     if candidate and "1990-01-01" <= candidate <= "2030-12-31":
@@ -127,11 +155,11 @@ def extract_date_from_url(url: str) -> str | None:
     return None
 
 
-def extract_date_from_page(url: str) -> str | None:
+def extract_date_from_page(url: str, timeout: int = 3) -> str | None:
     """Fetches a page and looks for a publication date in HTML meta tags."""
     try:
         # 🚨 Route through our robust fetcher to bypass blocks
-        html_text = robust_html_fetch(url, use_proxy=False)
+        html_text = robust_html_fetch(url, use_proxy=False, timeout=timeout)
         if not html_text:
             return None
             
@@ -159,11 +187,15 @@ def extract_date_from_page(url: str) -> str | None:
 
 
 def get_date_for_appearance(appearance: dict) -> str | None:
-    """Returns the best available date for a single appearance."""
-    date = extract_date_from_url(appearance["url"])
-    if date is None:
-        date = extract_date_from_page(appearance["url"])
-    return date
+    """Returns the best available date for a single appearance.
+    Priority: API date → URL pattern → page HTML meta tags (3s timeout).
+    Called concurrently (10 workers) so worst-case wall time is ~3s for all appearances."""
+    if appearance.get("date"):
+        return appearance["date"]
+    url_date = extract_date_from_url(appearance["url"])
+    if url_date:
+        return url_date
+    return extract_date_from_page(appearance["url"])
 
 
 def find_earliest(appearances: list[dict]) -> dict | None:
@@ -432,14 +464,8 @@ def run_reverse_image_search(image_url: str) -> dict:
 
         earliest = find_earliest(appearances)
 
-        if earliest is not None:
-            ctx = get_page_context(earliest["url"])
-            if not earliest.get("title"):
-                earliest["title"] = ctx["title"]
-            if not earliest.get("context"):
-                earliest["context"] = ctx["description"]
-            if not earliest.get("source_name"):
-                earliest["source_name"] = ctx["source_name"]
+        if earliest is not None and not earliest.get("context"):
+            earliest["context"] = ""  # title/source already from SerpAPI; skip slow page fetch
 
         has_any_date = any(a.get("date") for a in appearances)
 

@@ -4,14 +4,16 @@ export default {
   theme: {
     extend: {
       colors: {
-        navy: '#064766',
-        'navy-dark': '#042F47',
-        'navy-mid': '#073e5c',
-        'navy-card': '#0a3d5a',
-        accent: '#0077B6',
-        'pale-blue': '#B8DDF2',
-        'off-white': '#F4FAFD',
-        'blue-muted': '#8FA7B4',
+        navy: '#07090f',
+        'navy-dark': '#040608',
+        'navy-mid': '#0c1018',
+        'navy-card': '#111827',
+        accent: '#e63946',
+        'accent-hover': '#ef4444',
+        'pale-blue': '#b8ddf2',
+        highlight: '#ff8fa3',
+        'off-white': '#f4fafd',
+        'blue-muted': '#94a3b8',
       },
       fontFamily: {
         sans: [
@@ -22,6 +24,12 @@ export default {
           '"Segoe UI"',
           'Helvetica',
           'Arial',
+          'sans-serif',
+        ],
+        display: [
+          'Syne',
+          'Inter',
+          'system-ui',
           'sans-serif',
         ],
       },

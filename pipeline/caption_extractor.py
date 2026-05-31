@@ -42,9 +42,10 @@ news photos VISUALLY ILLUSTRATING the event or subject described.
 Rules:
 - Focus on what a photograph of this would look like, not the text itself
 - Include the subject's name + their sport/domain/role where applicable
-- Queries should retrieve diverse but contextually relevant photos
 - Avoid queries about contracts, salaries, or text-only topics
 - Each query should be 3-7 words
+- Rank queries from most to least specific: Q1 is the most targeted (names + context),
+  Q2 is action/scene focused, Q3 is the broadest useful fallback
 
 Return JSON: {"queries": ["query1", "query2", "query3"]}
 

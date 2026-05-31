@@ -86,19 +86,29 @@ You are the Historian — a chronology specialist who detects temporal recycling
 Temporal recycling: an old image reposted with a caption claiming it depicts a recent event.
 This is one of the most common forms of misinformation.
 
+CRITICAL TIMELINE ANCHOR: Today's date is May 31, 2026. Use this as your absolute baseline
+for calculating whether an image's publication date predates an event.
+
+⚠️  STRICT DATA RULE: You MUST work ONLY with the reverse-image-search data provided in
+the user message below. Do NOT draw on your training knowledge about where specific images
+have appeared online. Do NOT invent, recall, or infer any dates, URLs, source names, or
+article titles beyond what is explicitly listed. If the provided date says "Not found",
+treat it as genuinely unknown and score exactly 45 — you are FORBIDDEN from substituting
+any date or source from your own memory.
+
 Your task: compare the image's earliest known publication date to the event the caption claims.
 Determine whether the image predates the claimed event significantly.
 
 Scoring rules (apply the FIRST matching rule):
-1. Earliest date clearly predates the caption's claimed event by 2+ years         → score 85–95
-2. Earliest date predates by 6 months to 2 years                                  → score 60–80
-3. Earliest date is consistent with or after the claimed event                     → score 10–30
-4. earliest_appearance date is "Not found" / None                                  → score 45 (uncertain, not exonerating)
-5. Caption has no datable claim                                                    → score 40
+1. Earliest date clearly predates the caption's claimed event by 2+ years        → score 85–95
+2. Earliest date predates by 6 months to 2 years                                 → score 60–80
+3. Earliest date is consistent with or after the claimed event                   → score 10–30
+4. earliest_appearance date is "Not found" / None                                → score 45 (uncertain, not exonerating)
+5. Caption has no datable claim                                                  → score 40
 Modifier: if source name or title clearly describes a different event/location than caption → add +10
 
-Return ONLY valid JSON with no markdown fences:
-{"score": <integer 0-100>, "assessment": "<one or two sentences citing the date or source discrepancy>"}
+Return ONLY valid JSON with no markdown fences. Cite ONLY data that appears in the provided search results — never cite training memory:
+{"score": <integer 0-100>, "assessment": "<one or two sentences citing ONLY data from the provided search results>"}
 """
 
 _LINGUIST_SYSTEM = """\
@@ -108,15 +118,18 @@ You receive the image itself, its caption, and a CLIP cosine similarity score (r
 where >= 0.28 means strong semantic alignment; < 0.20 means weak or mismatched).
 
 Your task: determine whether the caption misrepresents what is visually depicted.
+Do NOT assume a claim is false just because the image lacks explicit proof; reserve extreme
+scores (85+) ONLY for explicit visual contradictions.
 
 Scoring rules (apply the FIRST matching rule):
-1. Caption describes specific people / events / locations not visible in the image  → score 75–95
-2. CLIP score < 0.20 AND image content does not match the caption claim            → score 65–85
-3. Official graphics (logos, announcement cards) naturally score 0.18–0.24 on CLIP;
+1. DIRECT CONTRADICTION: Image content visibly disproves the caption             → score 85–100
+2. UNSUPPORTED: Caption claims specific things/events not visible in the image   → score 60–84
+3. CLIP score < 0.20 AND image content feels disconnected from the caption       → score 60–84
+4. Official graphics (logos, announcement cards) naturally score 0.18–0.24 on CLIP;
    do NOT penalise those unless image content clearly contradicts caption text
-4. CLIP score >= 0.28 AND image content matches caption                             → score 5–25
-5. caption_image_similarity is None → rely only on visual analysis                 → score 35–55
-6. Empty caption                                                                    → score 30
+5. CLIP score >= 0.28 AND image content matches caption                          → score 5–25
+6. caption_image_similarity is None → rely only on visual analysis               → score 35–55
+7. Empty caption                                                                 → score 30
 
 Return ONLY valid JSON with no markdown fences:
 {"score": <integer 0-100>, "assessment": "<one or two sentences citing specific visual or textual evidence>"}
@@ -211,7 +224,7 @@ def _call_historian(
         config=genai_types.GenerateContentConfig(
             system_instruction=_HISTORIAN_SYSTEM,
             response_mime_type="application/json",
-            temperature=0.3,
+            temperature=0,
         ),
     )
     return _safe_parse(resp.text)
@@ -277,6 +290,7 @@ def _aggregate(scores: dict) -> dict:
         forensic_verdict = "VERIFIED MISINFORMATION"
         gemini_label     = "🚨 VERIFIED MISINFORMATION"
         veto_triggered   = True
+        mean_score       = max(scores.values())
     elif mean_score >= _LIKELY_MISINFO_THRESHOLD:
         forensic_verdict = "LIKELY MISINFORMATION"
         gemini_label     = "⚠️ LIKELY MISINFORMATION"

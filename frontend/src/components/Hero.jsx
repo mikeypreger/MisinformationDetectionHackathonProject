@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import LoadingTips from './LoadingTips';
 
 function isValidUrl(str) {
   try {
@@ -57,26 +58,27 @@ export default function Hero({ onAnalyze, analysisState, analysisError, onReset 
     >
       {/* Ambient glow */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-accent/[0.06] rounded-full blur-[120px]" />
-        <div className="absolute top-1/4 right-1/4 w-[300px] h-[300px] bg-pale-blue/[0.03] rounded-full blur-[80px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[650px] bg-accent/[0.08] rounded-full blur-[130px]" />
+        <div className="absolute top-1/4 right-1/4 w-[350px] h-[350px] bg-highlight/[0.04] rounded-full blur-[90px]" />
+        <div className="absolute bottom-1/4 left-1/5 w-[250px] h-[250px] bg-accent/[0.04] rounded-full blur-[80px]" />
       </div>
 
       <div className="relative w-full max-w-3xl mx-auto text-center">
         {/* Eyebrow */}
         <div className="inline-flex items-center mb-10 animate-fade-in">
-          <span className="inline-block text-[11px] font-medium tracking-[0.16em] uppercase text-pale-blue/55 border border-pale-blue/15 rounded-full px-4 py-1.5">
-            Visual context analysis
+          <span className="inline-block text-[11px] font-semibold tracking-[0.18em] uppercase text-accent/80 border border-accent/25 rounded-full px-4 py-1.5 bg-accent/[0.06]">
+            AI-Powered Misinformation Detection
           </span>
         </div>
 
         {/* Headline */}
         <h1
           id="hero-headline"
-          className="text-[40px] sm:text-[54px] md:text-[64px] font-light leading-[1.05] tracking-[-0.02em] text-white mb-6 text-balance animate-fade-up"
+          className="font-display text-[44px] sm:text-[58px] md:text-[70px] font-bold leading-[1.02] tracking-[-0.03em] text-white mb-6 text-balance animate-fade-up"
         >
           See when an image is
           <br />
-          <span className="text-pale-blue font-[350]">missing its context.</span>
+          <span className="text-highlight">missing its context.</span>
         </h1>
 
         {/* Subheadline */}
@@ -102,7 +104,7 @@ export default function Hero({ onAnalyze, analysisState, analysisError, onReset 
                 inputError
                   ? 'border-red-400/35 bg-white/[0.025]'
                   : focused
-                  ? 'border-pale-blue/28 bg-white/[0.055] shadow-[0_0_0_5px_rgba(184,221,242,0.04)]'
+                  ? 'border-accent/35 bg-white/[0.055] shadow-[0_0_0_5px_rgba(230,57,70,0.06)]'
                   : 'border-white/[0.08] bg-white/[0.025] hover:border-white/[0.12]'
               }`}
             >
@@ -130,7 +132,7 @@ export default function Hero({ onAnalyze, analysisState, analysisError, onReset 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="flex-shrink-0 bg-accent hover:bg-[#0088cc] disabled:opacity-55 text-white text-sm font-medium px-5 py-2.5 rounded-[8px] transition-all duration-200 hover:shadow-lg hover:shadow-accent/20 focus:outline-none focus:ring-2 focus:ring-pale-blue/30 disabled:cursor-not-allowed whitespace-nowrap"
+                className="flex-shrink-0 bg-accent hover:bg-accent-hover disabled:opacity-55 text-white text-sm font-semibold px-5 py-2.5 rounded-[8px] transition-all duration-200 shadow-[0_2px_14px_rgba(230,57,70,0.3)] hover:shadow-[0_4px_20px_rgba(230,57,70,0.5)] focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:cursor-not-allowed whitespace-nowrap"
                 aria-label={isLoading ? 'Analyzing…' : 'Analyze post'}
               >
                 {isLoading ? (
@@ -168,22 +170,7 @@ export default function Hero({ onAnalyze, analysisState, analysisError, onReset 
             )}
 
             {/* Loading state indicator */}
-            {isLoading && (
-              <div className="mt-8 flex flex-col items-center gap-3 animate-fade-in">
-                <div className="flex items-center gap-1.5" aria-hidden="true">
-                  {[0, 150, 300].map((delay) => (
-                    <span
-                      key={delay}
-                      className="w-1 h-1 rounded-full bg-pale-blue/45 animate-bounce"
-                      style={{ animationDelay: `${delay}ms` }}
-                    />
-                  ))}
-                </div>
-                <p className="text-[12px] text-blue-muted/60 font-light tracking-wide">
-                  Extracting image and analyzing context…
-                </p>
-              </div>
-            )}
+            {isLoading && <LoadingTips />}
 
             {/* Hint text */}
             {!inputError && !isLoading && !isError && (
@@ -229,7 +216,7 @@ export default function Hero({ onAnalyze, analysisState, analysisError, onReset 
           aria-hidden="true"
         >
           <svg
-            className="animate-bounce w-4 h-4 text-pale-blue"
+            className="animate-bounce w-4 h-4 text-accent"
             fill="none"
             stroke="currentColor"
             strokeWidth="1.5"

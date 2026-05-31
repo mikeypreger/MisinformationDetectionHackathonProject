@@ -12,7 +12,7 @@ returns the same dict shape MyApp.py already reads.
 """
 
 import numpy as np
-from engine_core import EngineCore
+from .engine_core import EngineCore
 
 # One shared instance — constructor is cheap, no model weights
 _engine = EngineCore(

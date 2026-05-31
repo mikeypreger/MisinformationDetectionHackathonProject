@@ -25,7 +25,7 @@ export default function About() {
               id="about-title"
             />
             <p className="text-[14px] font-light text-blue-muted/72 leading-relaxed mb-5">
-              miss information is designed for a world where images travel faster than their original
+              MISS INFORMATION is designed for a world where images travel faster than their original
               context. The platform helps users, researchers, journalists, and everyday readers
               examine whether a social media image is being used accurately or misleadingly.
             </p>

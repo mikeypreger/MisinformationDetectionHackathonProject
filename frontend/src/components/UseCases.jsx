@@ -45,7 +45,7 @@ export default function UseCases() {
           eyebrow="Applications"
           title="Use cases"
           id="use-cases-title"
-          subtitle="miss information is built for anyone who needs to move beyond surface-level image sharing and examine what is really being communicated."
+          subtitle="MISS INFORMATION is built for anyone who needs to move beyond surface-level image sharing and examine what is really being communicated."
         />
 
         <div className="relative">
@@ -64,7 +64,7 @@ export default function UseCases() {
                   className={`w-[45%] cursor-default transition-transform duration-300 ease-out group-hover:scale-[1.04] ${isLeft ? 'text-right pr-8' : 'text-left pl-8'}`}
                 >
                   <span
-                    className="text-[18px] text-pale-blue/30 group-hover:text-pale-blue/50 transition-colors duration-300 mb-2 block"
+                    className="text-[18px] text-accent/30 group-hover:text-accent/60 transition-colors duration-300 mb-2 block"
                     aria-hidden="true"
                   >
                     {useCase.symbol}
@@ -79,7 +79,7 @@ export default function UseCases() {
 
                 {/* dot on the line */}
                 <div className="w-[10%] flex justify-center z-10">
-                  <div className="w-2.5 h-2.5 rounded-full border border-white/20 bg-white/[0.06] group-hover:bg-pale-blue/30 group-hover:border-pale-blue/40 transition-all duration-300" />
+                  <div className="w-2.5 h-2.5 rounded-full border border-white/20 bg-white/[0.06] group-hover:bg-accent/30 group-hover:border-accent/50 transition-all duration-300" />
                 </div>
 
                 {/* empty side */}

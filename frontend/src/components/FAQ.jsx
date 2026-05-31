@@ -3,7 +3,7 @@ import SectionHeader from './SectionHeader';
 
 const FAQ_ITEMS = [
   {
-    question: 'Does miss information decide what is true?',
+    question: 'Does MISS INFORMATION decide what is true?',
     answer:
       'No. It provides contextual signals and analysis to support verification, not replace human judgment. The platform is a tool for researchers, journalists, and readers — not an arbiter of truth. All conclusions should be interpreted alongside other verification methods.',
   },
@@ -23,7 +23,7 @@ const FAQ_ITEMS = [
       'Not yet. This version includes mocked results and is designed to connect to a Python analysis pipeline. The UI, component structure, and API interface are all ready for backend integration. The mock results illustrate the intended output format.',
   },
   {
-    question: 'Who is miss information designed for?',
+    question: 'Who is MISS INFORMATION designed for?',
     answer:
       'The platform is built for journalists, fact-checkers, researchers, media literacy educators, and anyone who needs to assess whether an image is being presented in its accurate original context. It is intentionally serious and analytical in tone.',
   },
@@ -33,7 +33,7 @@ function FAQItem({ item, isOpen, onToggle }) {
   return (
     <div className="border-b border-white/[0.06]">
       <button
-        className="w-full flex items-center justify-between gap-6 py-5 text-left group focus:outline-none focus-visible:ring-2 focus-visible:ring-pale-blue/30 rounded"
+        className="w-full flex items-center justify-between gap-6 py-5 text-left group focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 rounded"
         onClick={onToggle}
         aria-expanded={isOpen}
       >
@@ -42,7 +42,7 @@ function FAQItem({ item, isOpen, onToggle }) {
         </span>
         <span
           className={`flex-shrink-0 w-6 h-6 border border-white/[0.1] rounded-full flex items-center justify-center text-blue-muted/50 transition-all duration-300 ${
-            isOpen ? 'rotate-45 border-pale-blue/22 text-pale-blue/60' : ''
+            isOpen ? 'rotate-45 border-accent/30 text-accent/70' : ''
           }`}
           aria-hidden="true"
         >

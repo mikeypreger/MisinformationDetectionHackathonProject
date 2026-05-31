@@ -14,7 +14,7 @@ DEV_MODE       = os.getenv("DEV_MODE", "True").lower() == "true"
 PIPELINE_STAGE = int(os.getenv("PIPELINE_STAGE", "4"))
 
 from pipeline.url_normalizer    import normalize_url
-from pipeline.social_scraper    import scrape_post
+from pipeline.social_scraper    import scrape_post, fetch_reddit_data
 from pipeline.caption_extractor import extract_search_queries
 from pipeline.image_fetcher     import fetch_context_image_urls, download_images_parallel
 from pipeline.embedder          import (
@@ -49,9 +49,14 @@ def run_pipeline(
     except ValueError as e:
         return {"error": str(e), "input_url": input_url}
 
-    post_data  = scrape_post(normalized_url, platform_key)
-    image_url  = post_data.get("image_url")
-    caption    = post_data.get("caption", "")
+    post_date = None
+    if platform_key == "reddit":
+        image_url, caption, post_date = fetch_reddit_data(normalized_url)
+        caption = caption or ""
+    else:
+        post_data = scrape_post(normalized_url, platform_key)
+        image_url = post_data.get("image_url")
+        caption   = post_data.get("caption", "")
 
     if not image_url:
         return {
@@ -97,8 +102,18 @@ def run_pipeline(
             "pipeline_stage": 0,
         }
 
-    # ── Stage 2: Extract search queries from caption ──────────────────────────
-    queries = extract_search_queries(caption, post_url=normalized_url)
+    # ── Stages 2 + 2.5: fire all three independent network calls concurrently ────
+    # extract_search_queries (Gemini), run_reverse_image_search (SerpAPI Lens), and
+    # extract_image_metadata (EXIF) share no data dependencies — run in parallel.
+    from concurrent.futures import ThreadPoolExecutor as _TPE
+
+    with _TPE(max_workers=3) as _ex:
+        _fq = _ex.submit(extract_search_queries, caption, normalized_url)
+        _fr = _ex.submit(run_reverse_image_search, image_url)
+        _fm = _ex.submit(extract_image_metadata, image_url)
+        queries        = _fq.result()
+        reverse_search = _fr.result()
+        image_metadata = _fm.result()
 
     if stage == 2:
         return {
@@ -111,10 +126,16 @@ def run_pipeline(
             "pipeline_stage": 2,
         }
 
-    # ── Phase 2.5: Context Enrichment (runs in parallel with context-pool fetch) ──
-    # Reverse image search and EXIF extraction happen while we build the context pool.
-    reverse_search  = run_reverse_image_search(image_url)
-    image_metadata  = extract_image_metadata(image_url)
+    # Reddit post date: use as earliest_appearance fallback when Lens finds nothing
+    if post_date and reverse_search and reverse_search.get("earliest_appearance") is None:
+        reverse_search["earliest_appearance"] = {
+            "date":        post_date,
+            "source_name": "Reddit (original post)",
+            "url":         normalized_url,
+            "title":       caption[:80] if caption else "",
+            "match_type":  "reddit_post",
+            "context":     "",
+        }
 
     # ── Stage 3: Fetch context image URLs ────────────────────────────────────
     context_urls = fetch_context_image_urls(queries, max_total=60)
@@ -143,7 +164,7 @@ def run_pipeline(
         caption_image_similarity = _SIM_CAPTION_SIM
     else:
         context_pil_images = download_images_parallel(context_urls)
-        context_embeddings = embed_images(context_pil_images, model=embedding_model)
+        context_embeddings = embed_images(context_pil_images[:20], model=embedding_model)
         query_embedding    = embed_single_image(query_pil,    model=embedding_model)
 
         # Caption-image similarity: always CLIP (DINOv2 has no text encoder).
@@ -195,13 +216,239 @@ def run_pipeline(
 # ── Streamlit UI ──────────────────────────────────────────────────────────────
 
 
+def _sh(title: str) -> None:
+    """Render a styled section header."""
+    st.markdown(
+        f"""<div style="
+            margin: 1.6rem 0 0.6rem;
+            padding-bottom: 0.4rem;
+            border-bottom: 1px solid #1e2a3a;
+        ">
+            <span style="
+                font-family:'Space Grotesk',sans-serif;
+                font-size:1.05rem;
+                font-weight:600;
+                color:#c8d6e5;
+                letter-spacing:0.04em;
+                text-transform:uppercase;
+            ">{title}</span>
+        </div>""",
+        unsafe_allow_html=True,
+    )
+
+
 def _render_ui():
-    st.set_page_config(page_title="Miss Information", page_icon="🔍", layout="centered")
-    st.title("🔍 Miss Information")
-    st.caption("Misinformation detection powered by statistical forensics")
+    st.set_page_config(
+        page_title="MISS INFORMATION",
+        page_icon="🔍",
+        layout="centered",
+        initial_sidebar_state="expanded",
+    )
+
+    st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+    html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
+    #MainMenu, footer { visibility: hidden; }
+
+    .stApp {
+        background: linear-gradient(160deg, #06090f 0%, #0d1321 55%, #0a0e1a 100%) !important;
+    }
+
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0b0f1e 0%, #0d1321 100%) !important;
+        border-right: 1px solid #1c2535 !important;
+    }
+    [data-testid="stSidebar"] * { color: #c8d6e5 !important; }
+    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2,
+    [data-testid="stSidebar"] h3 {
+        font-family: 'Space Grotesk', sans-serif !important;
+        color: #e2e8f0 !important;
+        letter-spacing: 0.04em !important;
+    }
+
+    /* Text input */
+    [data-testid="stTextInput"] input {
+        background: #111827 !important;
+        border: 1.5px solid #2d3748 !important;
+        border-radius: 10px !important;
+        color: #e2e8f0 !important;
+        font-family: 'Inter', sans-serif !important;
+        font-size: 0.95rem !important;
+        padding: 0.75rem 1rem !important;
+        transition: border-color 0.2s, box-shadow 0.2s !important;
+    }
+    [data-testid="stTextInput"] input:focus {
+        border-color: #e63946 !important;
+        box-shadow: 0 0 0 3px rgba(230,57,70,0.18) !important;
+        outline: none !important;
+    }
+    [data-testid="stTextInput"] label {
+        color: #8892b0 !important;
+        font-size: 0.8rem !important;
+        font-weight: 500 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.12em !important;
+    }
+
+    /* Primary button */
+    .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #e63946 0%, #c1121f 100%) !important;
+        color: #fff !important;
+        border: none !important;
+        border-radius: 10px !important;
+        font-family: 'Space Grotesk', sans-serif !important;
+        font-weight: 600 !important;
+        font-size: 1rem !important;
+        letter-spacing: 0.06em !important;
+        padding: 0.6rem 2.2rem !important;
+        box-shadow: 0 4px 18px rgba(230,57,70,0.35) !important;
+        transition: all 0.2s !important;
+    }
+    .stButton > button[kind="primary"]:hover {
+        background: linear-gradient(135deg, #ff4d5a 0%, #e63946 100%) !important;
+        box-shadow: 0 6px 24px rgba(230,57,70,0.5) !important;
+        transform: translateY(-2px) !important;
+    }
+    .stButton > button[kind="primary"]:disabled {
+        opacity: 0.55 !important;
+        transform: none !important;
+    }
+
+    /* Metrics cards */
+    [data-testid="metric-container"] {
+        background: #111827 !important;
+        border: 1px solid #1e2a3a !important;
+        border-radius: 12px !important;
+        padding: 1rem 1.2rem !important;
+    }
+    [data-testid="metric-container"] > label {
+        color: #8892b0 !important;
+        font-size: 0.72rem !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.12em !important;
+        font-weight: 500 !important;
+    }
+    [data-testid="stMetricValue"] {
+        color: #e2e8f0 !important;
+        font-family: 'Space Grotesk', sans-serif !important;
+        font-weight: 700 !important;
+        font-size: 1.5rem !important;
+    }
+
+    /* Headings */
+    h1, h2, h3 {
+        font-family: 'Space Grotesk', sans-serif !important;
+        color: #e2e8f0 !important;
+        letter-spacing: -0.02em !important;
+    }
+
+    /* Expanders */
+    [data-testid="stExpander"] summary {
+        background: #111827 !important;
+        border-radius: 10px !important;
+        color: #c8d6e5 !important;
+        font-family: 'Space Grotesk', sans-serif !important;
+        font-weight: 500 !important;
+    }
+    [data-testid="stExpander"] {
+        border: 1px solid #1e2a3a !important;
+        border-radius: 10px !important;
+        overflow: hidden !important;
+    }
+
+    /* Selectbox */
+    [data-testid="stSelectbox"] > div > div {
+        background: #111827 !important;
+        border-color: #2d3748 !important;
+        border-radius: 10px !important;
+        color: #e2e8f0 !important;
+    }
+
+    /* Code blocks (forensic summary) */
+    .stCodeBlock {
+        background: #0d1321 !important;
+        border: 1px solid #1e2a3a !important;
+        border-radius: 10px !important;
+        font-family: 'Inter', monospace !important;
+        font-size: 0.87rem !important;
+    }
+
+    /* Alert boxes */
+    [data-testid="stAlert"] {
+        border-radius: 10px !important;
+        border-left-width: 4px !important;
+    }
+
+    /* Caption */
+    .stCaptionContainer, [data-testid="stCaptionContainer"] {
+        color: #8892b0 !important;
+        font-size: 0.85rem !important;
+    }
+
+    /* Info box */
+    [data-testid="stInfo"] {
+        background: rgba(67,97,238,0.12) !important;
+        border-color: #4361ee !important;
+        color: #a8b8f8 !important;
+        border-radius: 10px !important;
+    }
+
+    /* General text */
+    p, li, .stMarkdown { color: #c8d6e5 !important; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # ── Hero header ────────────────────────────────────────────────────────────
+    st.markdown("""
+    <div style="text-align:center; padding: 2.5rem 0 0.25rem;">
+        <div style="
+            font-family: 'Bebas Neue', 'Space Grotesk', sans-serif;
+            font-size: clamp(3rem, 8vw, 5.5rem);
+            letter-spacing: 0.18em;
+            background: linear-gradient(135deg, #ff6b6b 0%, #e63946 45%, #ff8e53 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        ">MISS INFORMATION</div>
+        <div style="
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #e63946 30%, #ff8e53 70%, transparent);
+            margin: 0.5rem auto 0.9rem;
+            max-width: 420px;
+            border-radius: 2px;
+        "></div>
+        <div style="
+            font-family: 'Inter', sans-serif;
+            font-size: 0.82rem;
+            color: #8892b0;
+            letter-spacing: 0.28em;
+            text-transform: uppercase;
+            font-weight: 500;
+        ">AI-Powered Misinformation Detection</div>
+    </div>
+    <div style="height: 1.8rem;"></div>
+    """, unsafe_allow_html=True)
 
     with st.sidebar:
-        st.header("Settings")
+        st.markdown("""
+        <div style="
+            font-family:'Bebas Neue','Space Grotesk',sans-serif;
+            font-size:1.6rem;
+            letter-spacing:0.15em;
+            background:linear-gradient(135deg,#ff6b6b,#e63946);
+            -webkit-background-clip:text;
+            -webkit-text-fill-color:transparent;
+            background-clip:text;
+            margin-bottom:0.2rem;
+        ">SETTINGS</div>
+        <div style="height:2px;background:linear-gradient(90deg,#e63946,transparent);
+            margin-bottom:1.2rem;border-radius:2px;"></div>
+        """, unsafe_allow_html=True)
         simulation_mode = st.toggle(
             "Simulation mode",
             value=False,
@@ -250,7 +497,7 @@ def _render_ui():
         if result.get("guardrail_blocked"):
             st.warning(result["guardrail_reason"])
             if result.get("image_url"):
-                st.subheader("Post image (blocked)")
+                _sh("Post image (blocked)")
                 try:
                     st.image(load_image_from_url(result["image_url"]), width=400)
                 except Exception:
@@ -272,7 +519,7 @@ def _render_ui():
             st.warning(f"Statistical analysis unavailable: {result['error']}")
 
         if result.get("image_url"):
-            st.subheader("Post image")
+            _sh("Post image")
             try:
                 _display_img = load_image_from_url(result["image_url"])
                 st.image(_display_img, width=400)
@@ -280,11 +527,11 @@ def _render_ui():
                 st.image(result["image_url"], width=400)
 
         if result.get("caption"):
-            st.subheader("Caption")
+            _sh("Caption")
             st.write(result["caption"])
 
         if result.get("search_queries"):
-            st.subheader("Search queries")
+            _sh("Search queries")
             for q in result["search_queries"]:
                 st.write(f"• {q}")
 
@@ -367,7 +614,7 @@ def _render_ui():
             forensic_verdict   = result.get("forensic_verdict", "N/A")
             forensic_reasoning = result.get("forensic_reasoning", "")
             if forensic_verdict or forensic_reasoning:
-                st.subheader("Forensic Summary")
+                _sh("Forensic Summary")
                 st.code(
                     f"VERDICT: {forensic_verdict}\n\nREASONING: {forensic_reasoning}",
                     language=None,
@@ -376,7 +623,7 @@ def _render_ui():
             # ── Council breakdown ─────────────────────────────────────────────
             council_scores = result.get("council_scores", {})
             if council_scores:
-                st.subheader("Council Analysis")
+                _sh("Council Analysis")
                 if result.get("council_veto_triggered"):
                     veto_who = (result.get("council_veto_persona") or "unknown").replace("_", " ").title()
                     st.error(f"Hard veto triggered by **{veto_who}**")

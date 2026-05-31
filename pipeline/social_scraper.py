@@ -16,7 +16,7 @@ import requests
 from dotenv import load_dotenv
 
 # Import the platform-specific image-URL parsers from your friend's module
-from data_parser import (
+from .data_parser import (
     parse_instagram,
     parse_facebook,
     parse_x,
@@ -172,3 +172,43 @@ def scrape_post(normalized_url: str, platform_key: str) -> dict:
 
     image_url, caption = _extract_fields(record, platform_key)
     return {"image_url": image_url, "caption": caption, "raw_data": record}
+
+
+def fetch_reddit_data(reddit_url: str) -> tuple[str | None, str | None, str | None]:
+    """
+    Fetch a Reddit post directly via the native unauthenticated JSON endpoint.
+    Returns (image_url, caption, post_date) — no BrightData required.
+    post_date is YYYY-MM-DD or None.
+    """
+    from datetime import datetime, timezone
+    clean = reddit_url.split("?")[0].rstrip("/") + "/.json"
+    try:
+        resp = requests.get(
+            clean,
+            headers={"User-Agent": "MisinfoDetector/1.0 (hackathon)"},
+            timeout=5,
+        )
+        resp.raise_for_status()
+        post_data = resp.json()[0]["data"]["children"][0]["data"]
+    except Exception as e:
+        print(f"[social_scraper] Reddit JSON fetch failed: {e}")
+        return None, None, None
+
+    caption = post_data.get("title", "")
+
+    url = post_data.get("url", "")
+    image_url = None
+    if url.lower().split("?")[0].endswith((".jpg", ".jpeg", ".png")):
+        image_url = url
+    else:
+        thumb = post_data.get("thumbnail", "")
+        if thumb.startswith("http"):
+            image_url = thumb
+
+    ts = post_data.get("created_utc")
+    post_date = (
+        datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d")
+        if ts else None
+    )
+
+    return image_url, caption, post_date

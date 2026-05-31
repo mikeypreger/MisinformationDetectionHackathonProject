@@ -38,15 +38,19 @@ def parse_facebook(post):
 def parse_x(post):
     """Extracts images from X (Twitter) scraped data."""
     images = []
-    # X often buries images inside a 'media' or 'extended_entities' array
+    # Schema 1: extended_entities / media array (native Twitter API shape)
     if "media" in post and isinstance(post["media"], list):
         for media_item in post["media"]:
             if media_item.get("type") == "photo" and "media_url_https" in media_item:
                 images.append(media_item["media_url_https"])
-            elif "url" in media_item: # Fallback
+            elif "url" in media_item:
                 images.append(media_item["url"])
+    # Schema 2: flat "images" list
     elif "images" in post and isinstance(post["images"], list):
         images.extend(post["images"])
+    # Schema 3: BrightData Twitter scraper uses "photos" (list of direct CDN URLs)
+    if not images and "photos" in post and isinstance(post["photos"], list):
+        images.extend([p for p in post["photos"] if p])
     return images
 
 def parse_reddit(post):

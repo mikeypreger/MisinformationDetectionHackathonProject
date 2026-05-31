@@ -35,7 +35,7 @@ app.add_middleware(
     allow_headers=["Content-Type"],
 )
 
-_DIST = os.path.join(os.path.dirname(__file__), "FRONTEND", "dist")
+_DIST = os.path.join(os.path.dirname(__file__), "frontend", "dist")
 
 # ── Gemini synthesis ──────────────────────────────────────────────────────────
 # Takes the rich pipeline output and produces clean, user-facing UI copy for

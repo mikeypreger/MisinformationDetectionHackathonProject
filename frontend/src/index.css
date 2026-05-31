@@ -14,14 +14,14 @@
   }
 
   body {
-    background-color: #064766;
+    background-color: #07090f;
     color: #ffffff;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   ::selection {
-    background-color: rgba(184, 221, 242, 0.18);
+    background-color: rgba(230, 57, 70, 0.22);
   }
 }
 
@@ -30,7 +30,13 @@
     text-wrap: balance;
   }
 
-  /* Ensure animations start from their initial keyframe state */
+  .gradient-brand {
+    background: linear-gradient(135deg, #ff8fa3 0%, #e63946 60%, #c81d2b 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
   .animate-fade-in,
   .animate-fade-up,
   .animate-slide-up {

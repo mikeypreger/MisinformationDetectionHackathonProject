@@ -87,7 +87,7 @@ export default function HowItWorks() {
                 {step.number}
               </span>
 
-              <div className="w-10 h-10 border border-white/[0.08] rounded-xl flex items-center justify-center text-pale-blue/50 mb-7 group-hover:border-pale-blue/20 group-hover:text-pale-blue/75 transition-all duration-300">
+              <div className="w-10 h-10 border border-white/[0.08] rounded-xl flex items-center justify-center text-accent/45 mb-7 group-hover:border-accent/30 group-hover:text-accent/80 transition-all duration-300">
                 {step.icon}
               </div>
 
