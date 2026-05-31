@@ -102,31 +102,6 @@ reverse image search provenance data, and a CLIP caption-image similarity score.
 
 Evaluate ALL signals holistically and assign a single risk score 0-100.
 
-<<<<<<< HEAD
-CRITICAL TIMELINE ANCHOR: Today's date is May 31, 2026. Use this as your absolute baseline
-for calculating whether an image's publication date predates an event.
-
-⚠️  STRICT DATA RULE: You MUST work ONLY with the reverse-image-search data provided in
-the user message below. Do NOT draw on your training knowledge about where specific images
-have appeared online. Do NOT invent, recall, or infer any dates, URLs, source names, or
-article titles beyond what is explicitly listed. If the provided date says "Not found",
-treat it as genuinely unknown and score exactly 45 — you are FORBIDDEN from substituting
-any date or source from your own memory.
-
-Your task: compare the image's earliest known publication date to the event the caption claims.
-Determine whether the image predates the claimed event significantly.
-
-Scoring rules (apply the FIRST matching rule):
-1. Earliest date clearly predates the caption's claimed event by 2+ years        → score 85–95
-2. Earliest date predates by 6 months to 2 years                                 → score 60–80
-3. Earliest date is consistent with or after the claimed event                   → score 10–30
-4. earliest_appearance date is "Not found" / None                                → score 45 (uncertain, not exonerating)
-5. Caption has no datable claim                                                  → score 40
-Modifier: if source name or title clearly describes a different event/location than caption → add +10
-
-Return ONLY valid JSON with no markdown fences. Cite ONLY data that appears in the provided search results — never cite training memory:
-{"score": <integer 0-100>, "assessment": "<one or two sentences citing ONLY data from the provided search results>"}
-=======
 Scoring guide:
   0-24   Almost certainly authentic / correctly captioned
   25-44  Probably authentic, minor concerns
@@ -161,7 +136,6 @@ CRITICAL — reverse image search is a lead, not proof:
 
 Return ONLY valid JSON, no markdown fences:
 {"score": <integer 0-100>, "assessment": "<2-3 sentences focusing on temporal and provenance evidence>"}
->>>>>>> f394ba5a9159d4337921ef96ac36888ac2c4d583
 """
 
 _LINGUIST_SYSTEM = """\
@@ -171,21 +145,6 @@ reverse image search provenance data, and a CLIP caption-image similarity score.
 
 Evaluate ALL signals holistically and assign a single risk score 0-100.
 
-<<<<<<< HEAD
-Your task: determine whether the caption misrepresents what is visually depicted.
-Do NOT assume a claim is false just because the image lacks explicit proof; reserve extreme
-scores (85+) ONLY for explicit visual contradictions.
-
-Scoring rules (apply the FIRST matching rule):
-1. DIRECT CONTRADICTION: Image content visibly disproves the caption             → score 85–100
-2. UNSUPPORTED: Caption claims specific things/events not visible in the image   → score 60–84
-3. CLIP score < 0.20 AND image content feels disconnected from the caption       → score 60–84
-4. Official graphics (logos, announcement cards) naturally score 0.18–0.24 on CLIP;
-   do NOT penalise those unless image content clearly contradicts caption text
-5. CLIP score >= 0.28 AND image content matches caption                          → score 5–25
-6. caption_image_similarity is None → rely only on visual analysis               → score 35–55
-7. Empty caption                                                                 → score 30
-=======
 Scoring guide:
   0-24   Almost certainly authentic / correctly captioned
   25-44  Probably authentic, minor concerns
@@ -204,7 +163,6 @@ Key rules for caption-image alignment:
 - Your PRIMARY evidence is what you can directly observe in the image vs. the caption.
   Reverse image search findings are secondary — they can be wrong. Base caption-image alignment
   assessment on the visual content, not on what a search engine claims the image is from.
->>>>>>> f394ba5a9159d4337921ef96ac36888ac2c4d583
 
 CRITICAL — do not blindly inherit the reverse image search narrative:
 - If the reverse image search claims the image is from country X but the image itself contains
@@ -260,92 +218,8 @@ def _safe_parse(raw: str) -> dict:
         return {"score": _FALLBACK_SCORE, "assessment": "(parse error)"}
 
 
-<<<<<<< HEAD
-# ── Persona callers ───────────────────────────────────────────────────────────
-
-def _call_statistical_cynic(
-    p_value,
-    mahalanobis_distance,
-    is_anomaly,
-    pca_components_used,
-    outliers_removed_by_mad,
-) -> dict:
-    from google.genai import types as genai_types
-
-    client   = _get_client()
-    user_msg = (
-        f"Statistical detection results:\n"
-        f"- is_anomaly: {is_anomaly}\n"
-        f"- p_value: {p_value}\n"
-        f"- mahalanobis_distance: {mahalanobis_distance}\n"
-        f"- pca_components_used: {pca_components_used}\n"
-        f"- outliers_removed_by_mad: {outliers_removed_by_mad}\n"
-    )
-    resp = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=user_msg,
-        config=genai_types.GenerateContentConfig(
-            system_instruction=_CYNIC_SYSTEM,
-            response_mime_type="application/json",
-            temperature=0,
-        ),
-    )
-    return _safe_parse(resp.text)
-
-
-def _call_historian(
-    earliest_appearance: dict | None,
-    caption: str,
-) -> dict:
-    from google.genai import types as genai_types
-
-    client = _get_client()
-    if earliest_appearance:
-        ea_date   = earliest_appearance.get("date",        "Not found")
-        ea_source = earliest_appearance.get("source_name", "N/A")
-        ea_url    = earliest_appearance.get("url",         "N/A")
-        ea_title  = earliest_appearance.get("title",       "N/A")
-    else:
-        ea_date = ea_source = ea_url = ea_title = "Not found"
-
-    user_msg = (
-        f"Caption: {caption or '(none)'}\n\n"
-        f"Reverse image search earliest appearance:\n"
-        f"- Date: {ea_date}\n"
-        f"- Source: {ea_source}\n"
-        f"- URL: {ea_url}\n"
-        f"- Page title: {ea_title}\n"
-    )
-    resp = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=user_msg,
-        config=genai_types.GenerateContentConfig(
-            system_instruction=_HISTORIAN_SYSTEM,
-            response_mime_type="application/json",
-            temperature=0,
-        ),
-    )
-    return _safe_parse(resp.text)
-
-
-def _call_linguist(
-    caption: str,
-    image_url: str,
-    caption_image_similarity: float | None,
-) -> dict:
-    from google.genai import types as genai_types
-
-    client    = _get_client()
-    text_part = (
-        f"Caption: {caption or '(none)'}\n"
-        f"CLIP caption-image similarity score: {caption_image_similarity}\n\n"
-        "Assess whether this caption misrepresents what the image shows."
-    )
-
-=======
 def _fetch_image_bytes(image_url: str) -> tuple:
     """Download image once; return (bytes, mime_type) or (None, '')."""
->>>>>>> f394ba5a9159d4337921ef96ac36888ac2c4d583
     try:
         resp = requests.get(image_url, timeout=8, headers={"User-Agent": "Mozilla/5.0"})
         resp.raise_for_status()
@@ -405,29 +279,12 @@ def _call_persona(contents, system_prompt: str, temperature: float) -> dict:
 
 def _aggregate(scores: dict) -> dict:
     mean_score = sum(scores.values()) / len(scores)
-<<<<<<< HEAD
-
-    if veto_persona:
-        forensic_verdict = "VERIFIED MISINFORMATION"
-        gemini_label     = "🚨 VERIFIED MISINFORMATION"
-        veto_triggered   = True
-        mean_score       = max(scores.values())
-    elif mean_score >= _LIKELY_MISINFO_THRESHOLD:
-        forensic_verdict = "LIKELY MISINFORMATION"
-        gemini_label     = "⚠️ LIKELY MISINFORMATION"
-        veto_triggered   = False
-    elif mean_score >= _UNCERTAIN_THRESHOLD:
-        forensic_verdict = "N/A"
-        gemini_label     = "🔍 UNCERTAIN"
-        veto_triggered   = False
-=======
     if mean_score >= _SCORE_VERIFIED:
         verdict, label = "VERIFIED MISINFORMATION", "🚨 VERIFIED MISINFORMATION"
     elif mean_score >= _SCORE_LIKELY:
         verdict, label = "LIKELY MISINFORMATION",   "⚠️ LIKELY MISINFORMATION"
     elif mean_score >= _SCORE_UNCERTAIN:
         verdict, label = "N/A",                     "🔍 UNCERTAIN"
->>>>>>> f394ba5a9159d4337921ef96ac36888ac2c4d583
     else:
         verdict, label = "LIKELY TRUE",             "✅ LIKELY TRUE"
     return {
