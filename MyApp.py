@@ -126,6 +126,7 @@ def run_pipeline(
             "pipeline_stage": 2,
         }
 
+<<<<<<< HEAD
     # Reddit post date: use as earliest_appearance fallback when Lens finds nothing
     if post_date and reverse_search and reverse_search.get("earliest_appearance") is None:
         reverse_search["earliest_appearance"] = {
@@ -139,6 +140,24 @@ def run_pipeline(
 
     # ── Stage 3: Fetch context image URLs ────────────────────────────────────
     context_urls = fetch_context_image_urls(queries, max_total=60)
+=======
+    # ── Phase 2.5 + Stage 3 in parallel ─────────────────────────────────────────
+    # Reverse search and EXIF fire in background threads while context URLs are
+    # fetched on the main thread — all three are independent network calls.
+    from concurrent.futures import ThreadPoolExecutor as _Pool
+    with _Pool(max_workers=2) as _pool:
+        _fr = _pool.submit(run_reverse_image_search, image_url)
+        _fm = _pool.submit(extract_image_metadata,   image_url)
+        context_urls = fetch_context_image_urls(queries, max_total=60)
+        try:
+            reverse_search = _fr.result(timeout=20)
+        except Exception as _e:
+            print(f"[pipeline] reverse search failed: {_e}"); reverse_search = {}
+        try:
+            image_metadata = _fm.result(timeout=20)
+        except Exception as _e:
+            print(f"[pipeline] metadata extraction failed: {_e}"); image_metadata = {}
+>>>>>>> f394ba5a9159d4337921ef96ac36888ac2c4d583
 
     if stage == 3:
         return {
