@@ -79,7 +79,7 @@ def _gemini_synthesize(pipeline_result: dict) -> dict | None:
             "caption_image_similarity", "caption",
             "reverse_image_search",
         )}
-        text_part = f"Pipeline result:\n{json.dumps(summary, indent=2)}"
+        text_part = f"Pipeline result:\n{json.dumps(summary, indent=2, default=str)}"
 
         # Include the post image so Gemini can write an accurate imageAlt and
         # visually-grounded analysis copy.
@@ -99,18 +99,20 @@ def _gemini_synthesize(pipeline_result: dict) -> dict | None:
             except Exception:
                 pass  # fall back to text-only; still works fine
 
-        resp = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=contents,
-            config=genai_types.GenerateContentConfig(
-                system_instruction=_SYNTH_SYSTEM,
-                response_mime_type="application/json",
-                temperature=0.3,
-            ),
+        synth_config = genai_types.GenerateContentConfig(
+            system_instruction=_SYNTH_SYSTEM,
+            response_mime_type="application/json",
+            temperature=0.3,
         )
-        return json.loads(resp.text)
+        for model in ("gemini-2.5-flash", "gemini-1.5-flash"):
+            try:
+                resp = client.models.generate_content(model=model, contents=contents, config=synth_config)
+                return json.loads(resp.text)
+            except Exception as model_err:
+                print(f"[server] synthesis {model} failed: {model_err}")
+        return None
     except Exception as e:
-        print(f"[server] Gemini synthesis failed: {e}")
+        print(f"[server] synthesis setup failed: {e}")
         return None
 
 
@@ -200,6 +202,12 @@ def analyze(req: AnalyzeRequest):
             "sourceVerified":  verdict == "LIKELY TRUE",
         },
     }
+
+
+# ── Health check (Railway / Docker probe) ────────────────────────────────────
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 
 # ── Serve React SPA (production build) ───────────────────────────────────────

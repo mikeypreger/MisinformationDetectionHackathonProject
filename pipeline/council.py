@@ -24,7 +24,9 @@ _SCORE_VERIFIED  = 65   # mean >= → VERIFIED MISINFORMATION
 _SCORE_LIKELY    = 45   # mean >= → LIKELY MISINFORMATION
 _SCORE_UNCERTAIN = 25   # mean >= → N/A / Uncertain
 _FALLBACK_SCORE  = 50
-_PERSONA_TIMEOUT = 25   # seconds per persona before we fall back to neutral
+_PERSONA_TIMEOUT    = 45   # must exceed _RETRY_WINDOW + one model call duration
+_RETRY_WINDOW       = 30   # total seconds to keep retrying on 503
+_RETRY_SLEEP        = 5    # seconds between retry attempts
 
 # ── Simulation constants — imported by MyApp.py for synthetic embedding injection ──
 _SIM_CONTEXT_EMBEDDINGS = np.random.default_rng(42).standard_normal((25, 768)).astype(np.float32)
@@ -262,19 +264,33 @@ def _build_full_context(
 
 
 def _call_persona(contents, system_prompt: str, temperature: float) -> dict:
-    """Single reusable caller — used for all 3 personas with pre-built contents."""
+    """
+    Retry loop: tries gemini-2.5-flash then gemini-1.5-flash on each attempt.
+    Sleeps _RETRY_SLEEP seconds between attempts for up to _RETRY_WINDOW seconds total.
+    """
+    import time
     from google.genai import types as genai_types
-    client = _get_client()
-    resp   = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=contents,
-        config=genai_types.GenerateContentConfig(
-            system_instruction=system_prompt,
-            response_mime_type="application/json",
-            temperature=temperature,
-        ),
+    client   = _get_client()
+    config   = genai_types.GenerateContentConfig(
+        system_instruction=system_prompt,
+        response_mime_type="application/json",
+        temperature=temperature,
     )
-    return _safe_parse(resp.text)
+    deadline = time.time() + _RETRY_WINDOW
+    attempt  = 0
+    while True:
+        for model in ("gemini-2.5-flash", "gemini-1.5-flash"):
+            try:
+                resp = client.models.generate_content(model=model, contents=contents, config=config)
+                return _safe_parse(resp.text)
+            except Exception as e:
+                print(f"[council] {model} attempt {attempt + 1} failed: {e}")
+        attempt += 1
+        remaining = deadline - time.time()
+        if remaining <= 0:
+            break
+        time.sleep(min(_RETRY_SLEEP, remaining))
+    return {"score": _FALLBACK_SCORE, "assessment": "(all models unavailable after retries)"}
 
 
 def _aggregate(scores: dict) -> dict:
@@ -304,7 +320,7 @@ def _build_reasoning(scores: dict, assessments: dict) -> str:
 
 
 def _run_top_reasons(scores: dict, assessments: dict, verdict: str, context_text: str) -> list:
-    """Ask the council synthesizer for the 3 strongest reasons behind the verdict."""
+    """Ask the synthesizer for the 3 strongest reasons; falls back to persona assessments on failure."""
     from google.genai import types as genai_types
     persona_summary = "\n".join(
         f"- {name.replace('_', ' ').title()} (score {score}/100): {assessments.get(name, '')}"
@@ -316,24 +332,28 @@ def _run_top_reasons(scores: dict, assessments: dict, verdict: str, context_text
         f"Persona assessments:\n{persona_summary}\n\n"
         f"Full signal context:\n{context_text}"
     )
-    try:
-        client = _get_client()
-        resp = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-            config=genai_types.GenerateContentConfig(
-                system_instruction=_SYNTHESIZER_SYSTEM,
-                response_mime_type="application/json",
-                temperature=0.2,
-            ),
-        )
-        data = json.loads(resp.text)
-        reasons = data.get("top_reasons", [])
-        if isinstance(reasons, list) and reasons:
-            return [str(r) for r in reasons[:3]]
-    except Exception as e:
-        print(f"[council] synthesizer failed: {e}")
-    return []
+    config_kwargs = dict(
+        system_instruction=_SYNTHESIZER_SYSTEM,
+        response_mime_type="application/json",
+        temperature=0.2,
+    )
+    for model in ("gemini-2.5-flash", "gemini-1.5-flash"):
+        try:
+            from google.genai import types as _t
+            client = _get_client()
+            resp = client.models.generate_content(
+                model=model, contents=prompt,
+                config=_t.GenerateContentConfig(**config_kwargs),
+            )
+            data = json.loads(resp.text)
+            reasons = data.get("top_reasons", [])
+            if isinstance(reasons, list) and reasons:
+                return [str(r) for r in reasons[:3]]
+        except Exception as e:
+            print(f"[council] synthesizer {model} failed: {e}")
+    # Both models failed — derive reasons from the highest-scoring persona assessments
+    sorted_names = sorted(scores, key=scores.get, reverse=True)
+    return [assessments[n] for n in sorted_names if assessments.get(n) and "(all models" not in assessments[n]][:3]
 
 
 def _build_neutral_fallback(reason: str) -> dict:
