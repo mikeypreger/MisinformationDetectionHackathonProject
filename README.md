@@ -2,6 +2,13 @@
 ### Out-of-Context Image Detection — HUJI Hackathon 2026
 *"Trust & Safety in the AI Era: Detecting Fakes"*
 
+Built at HUJI Hackathon 2026 ("Trust & Safety in the AI Era: Detecting Fakes),
+where it placed **5th**.
+
+- Itamar Galpern
+- Mikey Preger
+- Adi Ozana
+- Yair Israel
 ---
 
 ## What is Miss Information?
